@@ -25,7 +25,8 @@
     "switchLabel": "زبان"
   },
   "common": {
-    "comingSoon": "جلد آ رہا ہے"
+    "comingSoon": "جلد آ رہا ہے",
+    "loading": "لوڈ ہو رہا ہے…"
   },
   "auth": {
     "loginTitle": "لاگ ان",

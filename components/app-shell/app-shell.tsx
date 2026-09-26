@@ -4,6 +4,7 @@ import type { Role } from "@/lib/rbac";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import { TopBar } from "@/components/app-shell/top-bar";
 import { BottomNav } from "@/components/app-shell/bottom-nav";
+import { ProgressBar } from "@/components/app-shell/progress-bar";
 
 export function AppShell({
   children,
@@ -14,6 +15,7 @@ export function AppShell({
 }) {
   return (
     <div className="flex min-h-full">
+      <ProgressBar />
       <AppSidebar />
       <div className="flex min-h-full min-w-0 flex-1 flex-col">
         <TopBar user={user} />

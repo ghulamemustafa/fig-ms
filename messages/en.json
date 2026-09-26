@@ -25,7 +25,8 @@
     "switchLabel": "Language"
   },
   "common": {
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "loading": "Loading…"
   },
   "auth": {
     "loginTitle": "Sign in",
