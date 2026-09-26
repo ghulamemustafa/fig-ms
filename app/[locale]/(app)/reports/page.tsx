@@ -19,7 +19,7 @@ function ReportsContent({ allowed }: { allowed: ExportEntity[] }) {
   if (allowed.length === 0) {
     return (
       <div className="space-y-2">
-        <h1 className="text-xl font-semibold">{tAuth("notAuthorizedTitle")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{tAuth("notAuthorizedTitle")}</h1>
         <p className="text-muted-foreground">{tAuth("notAuthorizedBody")}</p>
       </div>
     );
@@ -28,7 +28,7 @@ function ReportsContent({ allowed }: { allowed: ExportEntity[] }) {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">{t("title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
       <ReportsExporter allowed={allowed} />

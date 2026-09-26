@@ -14,7 +14,7 @@ export function Watermark() {
         width={640}
         height={640}
         priority={false}
-        className="size-[min(70vmin,520px)] rounded-full object-cover opacity-[0.06] dark:opacity-[0.05] dark:grayscale"
+        className="size-[min(70vmin,520px)] rounded-full object-cover opacity-[0.035] dark:opacity-[0.025] dark:grayscale"
       />
     </div>
   );

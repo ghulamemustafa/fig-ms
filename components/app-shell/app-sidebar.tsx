@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/navigation";
@@ -24,13 +25,16 @@ function SidebarLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium",
+        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200",
         isActive
           ? "bg-accent text-accent-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
     >
-      <Icon className="size-4" />
+      {isActive && (
+        <span aria-hidden className="absolute inset-y-2 start-0 w-0.5 rounded-full bg-primary" />
+      )}
+      <Icon className={cn("size-4 transition-colors", isActive && "text-primary")} />
       {label}
     </Link>
   );
@@ -45,9 +49,16 @@ export function AppSidebar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-e bg-background md:flex">
-      <div className="flex h-14 items-center px-4 text-base font-semibold">
-        {tApp("name")}
+    <aside className="hidden h-dvh w-64 shrink-0 flex-col border-e bg-sidebar md:sticky md:top-0 md:flex">
+      <div className="flex h-16 items-center gap-3 px-4">
+        <Image
+          src="/logo.jpg"
+          alt=""
+          width={36}
+          height={36}
+          className="size-9 rounded-full object-cover ring-1 ring-border"
+        />
+        <span className="text-sm leading-tight font-semibold tracking-tight">{tApp("name")}</span>
       </div>
       <Separator />
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">

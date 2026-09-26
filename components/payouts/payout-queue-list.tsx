@@ -1,8 +1,9 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, ShieldCheck } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,7 @@ export function PayoutQueueList({
   const visible = payouts.filter((p) => !decided.has(p.id));
 
   if (visible.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("empty")}</p>;
+    return <EmptyState icon={ShieldCheck}>{t("empty")}</EmptyState>;
   }
 
   return (

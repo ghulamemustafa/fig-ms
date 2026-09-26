@@ -19,7 +19,7 @@ function NewMemberContent() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t("newTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("newTitle")}</h1>
       <MemberForm mode="create" />
     </div>
   );
@@ -29,7 +29,7 @@ function NotAuthorized() {
   const t = useTranslations("auth");
   return (
     <div className="space-y-2">
-      <h1 className="text-xl font-semibold">{t("notAuthorizedTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("notAuthorizedTitle")}</h1>
       <p className="text-muted-foreground">{t("notAuthorizedBody")}</p>
     </div>
   );

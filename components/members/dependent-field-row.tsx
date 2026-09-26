@@ -35,7 +35,7 @@ export function DependentFieldRow({
   const depErrors = errors?.dependents?.[index];
 
   return (
-    <div className="space-y-3 rounded-md border p-3">
+    <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-(--shadow-soft)">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">
           {t("sectionDependents")} #{index + 1}

@@ -79,7 +79,7 @@ function MemberDetailContent({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">{member.name}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{member.name}</h1>
           <p className="text-sm text-muted-foreground tabular-nums">
             {member.serialNo}
           </p>
@@ -157,7 +157,7 @@ function MemberDetailContent({
             </p>
           )}
 
-          <dl className="grid gap-3 sm:grid-cols-2">
+          <dl className="grid gap-x-8 gap-y-5 rounded-2xl border bg-card p-5 shadow-(--shadow-soft) sm:grid-cols-2">
             <DetailField label={tForm("fields.fatherName")} value={member.fatherName} />
             <DetailField label={tForm("fields.cnic")} value={member.cnic} mono />
             <DetailField label={tForm("fields.mobile")} value={member.mobile} mono />
@@ -186,7 +186,7 @@ function MemberDetailContent({
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {member.dependents.map((dep) => (
-                <div key={dep.id} className="rounded-md border p-3 text-sm">
+                <div key={dep.id} className="rounded-2xl border bg-card p-4 shadow-(--shadow-soft) text-sm">
                   <p className="font-medium">{dep.name}</p>
                   <p className="text-muted-foreground">
                     {tForm(`relation.${dep.relation as "spouse" | "son" | "daughter" | "father" | "mother" | "other"}`)} ·{" "}
@@ -204,7 +204,7 @@ function MemberDetailContent({
           {member.payments.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("noPayments")}</p>
           ) : (
-            <div className="overflow-hidden rounded-md border">
+            <div className="overflow-hidden rounded-2xl border bg-card shadow-(--shadow-soft)">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -253,7 +253,7 @@ function MemberDetailContent({
           {member.payouts.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("noPayouts")}</p>
           ) : (
-            <div className="overflow-hidden rounded-md border">
+            <div className="overflow-hidden rounded-2xl border bg-card shadow-(--shadow-soft)">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -315,7 +315,7 @@ function DetailField({
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={mono ? "tabular-nums" : undefined}>{value}</dd>
+      <dd className={mono ? "font-mono text-sm tabular-nums" : "font-medium"}>{value}</dd>
     </div>
   );
 }

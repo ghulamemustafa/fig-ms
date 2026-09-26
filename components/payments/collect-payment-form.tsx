@@ -142,7 +142,7 @@ export function CollectPaymentForm() {
 
   function renderMonths(months: OutstandingMonth[]) {
     return (
-      <div className="divide-y rounded-md border">
+      <div className="divide-y rounded-xl border bg-card">
         {months.map((o) => (
           <label key={o.monthCovered} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
             <span className="flex items-center gap-2">

@@ -1,10 +1,11 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations, useFormatter } from "next-intl";
-import { Loader2, Plus, Pencil } from "lucide-react";
+import { Loader2, Plus, Pencil, TrendingUp } from "lucide-react";
 import type { z } from "zod";
 
 import { incomeEntrySchema } from "@/lib/schemas/ledger";
@@ -96,14 +97,14 @@ export function IncomeLedger({
       </div>
 
       <p className="text-sm font-medium">
-        {tCommon("total")}: <span className="tabular-nums">{total}</span>
+        {tCommon("total")}: <span className="font-mono tabular-nums">{total}</span>
       </p>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{tCommon("empty")}</p>
+        <EmptyState icon={TrendingUp}>{tCommon("empty")}</EmptyState>
       ) : (
         <>
-          <div className="hidden overflow-hidden rounded-md border md:block">
+          <div className="hidden overflow-hidden rounded-2xl border bg-card shadow-(--shadow-soft) md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -120,7 +121,7 @@ export function IncomeLedger({
                       {format.dateTime(new Date(entry.date), { dateStyle: "medium" })}
                     </TableCell>
                     <TableCell>{entry.source}</TableCell>
-                    <TableCell className="tabular-nums">{entry.amount}</TableCell>
+                    <TableCell className="font-mono tabular-nums">{entry.amount}</TableCell>
                     {(canManage || canDelete) && (
                       <TableCell className="flex justify-end gap-1">
                         {canManage && (
@@ -146,7 +147,7 @@ export function IncomeLedger({
 
           <div className="grid gap-3 md:hidden">
             {entries.map((entry) => (
-              <div key={entry.id} className="rounded-md border p-3">
+              <div key={entry.id} className="rounded-2xl border bg-card p-4 shadow-(--shadow-soft)">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-medium">{entry.source}</p>
@@ -154,7 +155,7 @@ export function IncomeLedger({
                       {format.dateTime(new Date(entry.date), { dateStyle: "medium" })}
                     </p>
                   </div>
-                  <span className="tabular-nums">{entry.amount}</span>
+                  <span className="font-mono tabular-nums">{entry.amount}</span>
                 </div>
                 {(canManage || canDelete) && (
                   <div className="mt-2 flex justify-end gap-1">

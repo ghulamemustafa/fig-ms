@@ -9,7 +9,7 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t("title")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/payments/collect">
           <Card className="h-full transition-colors hover:bg-accent">

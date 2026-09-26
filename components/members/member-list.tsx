@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/ui/empty-state";
+import { Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { MemberStatus } from "@/lib/members";
@@ -45,13 +47,13 @@ export function MemberList({ members }: { members: MemberListRow[] }) {
   const t = useTranslations("membersPage");
 
   if (members.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("empty")}</p>;
+    return <EmptyState icon={Users}>{t("empty")}</EmptyState>;
   }
 
   return (
     <>
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-md border md:block">
+      <div className="hidden overflow-hidden rounded-2xl border bg-card shadow-(--shadow-soft) md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -99,7 +101,7 @@ export function MemberList({ members }: { members: MemberListRow[] }) {
           <Link
             key={member.id}
             href={`/members/${member.id}`}
-            className="rounded-md border p-3"
+            className="rounded-2xl border bg-card p-4 shadow-(--shadow-soft)"
           >
             <div className="flex items-start justify-between gap-2">
               <div>

@@ -40,7 +40,7 @@ function MyRequestsContent({ payouts }: { payouts: MyRequestPayout[] }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t("title")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <MyRequestsList payouts={payouts} />
     </div>
   );
@@ -50,7 +50,7 @@ function NotAuthorized() {
   const t = useTranslations("auth");
   return (
     <div className="space-y-2">
-      <h1 className="text-xl font-semibold">{t("notAuthorizedTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("notAuthorizedTitle")}</h1>
       <p className="text-muted-foreground">{t("notAuthorizedBody")}</p>
     </div>
   );

@@ -37,7 +37,7 @@ function VpQueueContent({ payouts }: { payouts: QueuePayout[] }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t("vpQueueTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("vpQueueTitle")}</h1>
       <PayoutQueueList
         payouts={payouts}
         decisionKind="vp-decision"
@@ -50,7 +50,7 @@ function NotAuthorized() {
   const t = useTranslations("auth");
   return (
     <div className="space-y-2">
-      <h1 className="text-xl font-semibold">{t("notAuthorizedTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("notAuthorizedTitle")}</h1>
       <p className="text-muted-foreground">{t("notAuthorizedBody")}</p>
     </div>
   );

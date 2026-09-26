@@ -37,7 +37,7 @@ export default async function AuditLogPage({
 }
 
 const selectClass =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-10 w-full rounded-xl border border-input bg-card px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function AuditLogContent({
   entries,
@@ -53,7 +53,7 @@ function AuditLogContent({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">{t("title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
 
@@ -100,7 +100,7 @@ function NotAuthorized() {
   const t = useTranslations("auth");
   return (
     <div className="space-y-2">
-      <h1 className="text-xl font-semibold">{t("notAuthorizedTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("notAuthorizedTitle")}</h1>
       <p className="text-muted-foreground">{t("notAuthorizedBody")}</p>
     </div>
   );

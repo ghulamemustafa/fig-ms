@@ -62,7 +62,7 @@ function EditMemberContent({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t("editTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("editTitle")}</h1>
       <MemberForm mode="edit" memberId={id} defaultValues={defaultValues} />
     </div>
   );
@@ -72,7 +72,7 @@ function NotAuthorized() {
   const t = useTranslations("auth");
   return (
     <div className="space-y-2">
-      <h1 className="text-xl font-semibold">{t("notAuthorizedTitle")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("notAuthorizedTitle")}</h1>
       <p className="text-muted-foreground">{t("notAuthorizedBody")}</p>
     </div>
   );

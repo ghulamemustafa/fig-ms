@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import type { Role } from "@/lib/rbac";
@@ -9,10 +10,12 @@ export function TopBar({ user }: { user: { name: string; role: Role } }) {
   const tApp = useTranslations("app");
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background px-4">
-      <span className="min-w-0 flex-1 truncate text-sm font-semibold md:flex-none md:text-base">
-        {tApp("name")}
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur-md md:h-16 md:px-6">
+      <span className="flex min-w-0 flex-1 items-center gap-2 md:hidden">
+        <Image src="/logo.jpg" alt="" width={28} height={28} className="size-7 shrink-0 rounded-full object-cover ring-1 ring-border" />
+        <span className="truncate text-sm font-semibold tracking-tight">{tApp("name")}</span>
       </span>
+      <span className="hidden flex-1 md:block" />
 
       <GlobalSearch />
 

@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/ui/empty-state";
+import { CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { getDefaulters } from "@/lib/payments";
@@ -28,16 +30,16 @@ function DefaultersContent({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">{t("title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("description")}</p>
       </div>
 
       {defaulters.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("empty")}</p>
+        <EmptyState icon={CheckCircle2}>{t("empty")}</EmptyState>
       ) : (
         <>
           {/* Desktop */}
-          <div className="hidden overflow-hidden rounded-md border md:block">
+          <div className="hidden overflow-hidden rounded-2xl border bg-card shadow-(--shadow-soft) md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -76,7 +78,7 @@ function DefaultersContent({
               <Link
                 key={m.id}
                 href={`/members/${m.id}`}
-                className="rounded-md border p-3"
+                className="rounded-2xl border bg-card p-4 shadow-(--shadow-soft)"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>

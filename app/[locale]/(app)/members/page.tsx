@@ -48,7 +48,7 @@ function MembersPageContent({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">{t("title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         {canCreate && (
           <Button
             render={

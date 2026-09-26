@@ -37,7 +37,7 @@ function PayoutsPageContent({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t("title")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
 
       {noAccess && <p className="text-sm text-muted-foreground">{t("noAccess")}</p>}
 

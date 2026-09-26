@@ -10,8 +10,8 @@ export default function MorePage() {
 
   return (
     <div className="space-y-2">
-      <h1 className="text-xl font-semibold">{t("more")}</h1>
-      <nav className="divide-y rounded-md border">
+      <h1 className="text-2xl font-semibold tracking-tight">{t("more")}</h1>
+      <nav className="divide-y overflow-hidden rounded-2xl border bg-card shadow-(--shadow-soft)">
         {secondaryNavItems.map((item) => {
           const link = (
             <Link

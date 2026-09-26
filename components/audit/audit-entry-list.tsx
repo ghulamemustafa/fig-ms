@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/ui/empty-state";
+import { ScrollText } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import type { AuditLogView } from "@/lib/audit-queries";
@@ -26,7 +28,7 @@ export function AuditEntryList({
   const format = useFormatter();
 
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("empty")}</p>;
+    return <EmptyState icon={ScrollText}>{t("empty")}</EmptyState>;
   }
 
   return (
@@ -37,7 +39,7 @@ export function AuditEntryList({
         const context = changes._context as Record<string, unknown> | undefined;
 
         return (
-          <div key={e.id} className="space-y-1.5 rounded-md border p-3 text-sm">
+          <div key={e.id} className="space-y-1.5 rounded-2xl border bg-card p-4 shadow-(--shadow-soft) text-sm">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={e.action === "delete" ? "destructive" : e.action === "create" ? "default" : "secondary"}>
                 {t(`actions.${e.action as "create" | "update" | "delete"}`)}

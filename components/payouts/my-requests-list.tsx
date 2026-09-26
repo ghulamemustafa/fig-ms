@@ -1,8 +1,9 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Loader2 } from "lucide-react";
+import { Loader2, HandCoins } from "lucide-react";
 
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
@@ -50,7 +51,7 @@ export function MyRequestsList({ payouts }: { payouts: MyRequestPayout[] }) {
   const router = useRouter();
 
   if (payouts.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("empty")}</p>;
+    return <EmptyState icon={HandCoins}>{t("empty")}</EmptyState>;
   }
 
   return (
