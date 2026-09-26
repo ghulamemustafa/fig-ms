@@ -1,0 +1,336 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations, useFormatter } from "next-intl";
+import { Loader2, Plus, Pencil } from "lucide-react";
+import type { z } from "zod";
+
+import { expenseEntrySchema } from "@/lib/schemas/ledger";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DateRangeFilter } from "@/components/ledgers/date-range-filter";
+import { DeleteEntryDialog } from "@/components/ledgers/delete-entry-dialog";
+
+type ExpenseEntry = {
+  id: string;
+  date: string;
+  category: string;
+  amount: string;
+  description: string | null;
+  approvedBy: string | null;
+};
+
+type FormInput = z.input<typeof expenseEntrySchema>;
+type FormOutput = z.output<typeof expenseEntrySchema>;
+
+const ALL_CATEGORIES = "__all__";
+
+export function ExpenseLedger({
+  canManage,
+  canDelete,
+}: {
+  canManage: boolean;
+  canDelete: boolean;
+}) {
+  const t = useTranslations("expenseLedger");
+  const tCommon = useTranslations("ledgerCommon");
+  const format = useFormatter();
+
+  const [range, setRange] = useState({ from: "", to: "" });
+  const [category, setCategory] = useState(ALL_CATEGORIES);
+  const [entries, setEntries] = useState<ExpenseEntry[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [total, setTotal] = useState(0);
+  const [dialogEntry, setDialogEntry] = useState<ExpenseEntry | "new" | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey((k) => k + 1);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const params = new URLSearchParams();
+      if (range.from) params.set("from", range.from);
+      if (range.to) params.set("to", range.to);
+      if (category !== ALL_CATEGORIES) params.set("category", category);
+      const res = await fetch(`/api/expenses?${params.toString()}`);
+      const data = await res.json();
+      if (!cancelled) {
+        setEntries(data.entries);
+        setTotal(data.total);
+        setCategories(data.categories);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [range.from, range.to, category, refreshKey]);
+
+  async function handleDelete(id: string) {
+    await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+    refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <DateRangeFilter
+          from={range.from}
+          to={range.to}
+          onChange={setRange}
+          extra={
+            <div className="space-y-1.5">
+              <Label>{t("categoryFilterLabel")}</Label>
+              <Select
+                value={category}
+                onValueChange={(value) => setCategory(value ?? ALL_CATEGORIES)}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_CATEGORIES}>{t("allCategories")}</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
+        {canManage && (
+          <Button onClick={() => setDialogEntry("new")} className="w-full sm:w-auto">
+            <Plus className="size-4" />
+            {tCommon("addEntry")}
+          </Button>
+        )}
+      </div>
+
+      <p className="text-sm font-medium">
+        {tCommon("total")}: <span className="tabular-nums">{total}</span>
+      </p>
+
+      {entries.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{tCommon("empty")}</p>
+      ) : (
+        <>
+          <div className="hidden overflow-hidden rounded-md border md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("table.date")}</TableHead>
+                  <TableHead>{t("table.category")}</TableHead>
+                  <TableHead>{t("table.amount")}</TableHead>
+                  {(canManage || canDelete) && <TableHead />}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {entries.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell>
+                      {format.dateTime(new Date(entry.date), { dateStyle: "medium" })}
+                    </TableCell>
+                    <TableCell>{entry.category}</TableCell>
+                    <TableCell className="tabular-nums">{entry.amount}</TableCell>
+                    {(canManage || canDelete) && (
+                      <TableCell className="flex justify-end gap-1">
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={tCommon("edit")}
+                            onClick={() => setDialogEntry(entry)}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <DeleteEntryDialog onDelete={() => handleDelete(entry.id)} />
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="grid gap-3 md:hidden">
+            {entries.map((entry) => (
+              <div key={entry.id} className="rounded-md border p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium">{entry.category}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format.dateTime(new Date(entry.date), { dateStyle: "medium" })}
+                    </p>
+                  </div>
+                  <span className="tabular-nums">{entry.amount}</span>
+                </div>
+                {(canManage || canDelete) && (
+                  <div className="mt-2 flex justify-end gap-1">
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={tCommon("edit")}
+                        onClick={() => setDialogEntry(entry)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                    )}
+                    {canDelete && <DeleteEntryDialog onDelete={() => handleDelete(entry.id)} />}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {dialogEntry && (
+        <ExpenseEntryDialog
+          entry={dialogEntry === "new" ? null : dialogEntry}
+          onClose={() => setDialogEntry(null)}
+          onSaved={refresh}
+        />
+      )}
+    </div>
+  );
+}
+
+function ExpenseEntryDialog({
+  entry,
+  onClose,
+  onSaved,
+}: {
+  entry: ExpenseEntry | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const t = useTranslations("expenseLedger");
+  const tCommon = useTranslations("ledgerCommon");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormInput, unknown, FormOutput>({
+    resolver: zodResolver(expenseEntrySchema),
+    defaultValues: entry
+      ? {
+          date: entry.date.slice(0, 10),
+          category: entry.category,
+          amount: Number(entry.amount),
+          description: entry.description ?? "",
+          approvedBy: entry.approvedBy ?? "",
+        }
+      : {
+          date: new Date().toISOString().slice(0, 10),
+          category: "",
+          amount: 0,
+          description: "",
+          approvedBy: "",
+        },
+  });
+
+  async function onSubmit(values: FormOutput) {
+    setSubmitError(null);
+    const url = entry ? `/api/expenses/${entry.id}` : "/api/expenses";
+    const method = entry ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (!res.ok) {
+      setSubmitError(tCommon("errors.generic"));
+      return;
+    }
+    onSaved();
+    onClose();
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <DialogHeader>
+            <DialogTitle>{entry ? tCommon("editEntry") : tCommon("addEntry")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {submitError && (
+              <Alert variant="destructive">
+                <AlertDescription>{submitError}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-1.5">
+              <Label>{tCommon("dateLabel")}</Label>
+              <Input type="date" {...register("date")} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("categoryLabel")}</Label>
+              <Input {...register("category")} />
+              {errors.category && (
+                <p className="text-sm text-destructive">{errors.category.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>{tCommon("amountLabel")}</Label>
+              <Input type="number" min="1" step="1" {...register("amount")} />
+              {errors.amount && (
+                <p className="text-sm text-destructive">{errors.amount.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("descriptionLabel")}</Label>
+              <Textarea {...register("description")} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("approvedByLabel")}</Label>
+              <Input {...register("approvedBy")} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              {tCommon("cancel")}
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+              {isSubmitting ? tCommon("saving") : tCommon("save")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

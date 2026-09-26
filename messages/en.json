@@ -1,0 +1,398 @@
+{
+  "app": {
+    "name": "Family Welfare Committee"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "members": "Members",
+    "payments": "Payments",
+    "payouts": "Payouts",
+    "more": "More",
+    "income": "Income",
+    "donations": "Donations",
+    "expenses": "Expenses",
+    "settings": "Settings",
+    "reports": "Reports"
+  },
+  "topbar": {
+    "searchPlaceholder": "Search by name, CNIC, serial no, mobile...",
+    "toggleSidebar": "Toggle sidebar"
+  },
+  "locale": {
+    "english": "English",
+    "urdu": "اردو",
+    "switchLabel": "Language"
+  },
+  "common": {
+    "comingSoon": "Coming soon"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "loginSubtitle": "Family Welfare Committee Management System",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "signOut": "Log out",
+    "invalidCredentials": "Incorrect email or password.",
+    "genericError": "Something went wrong. Please try again.",
+    "errors": {
+      "invalidEmail": "Enter a valid email address.",
+      "required": "This field is required."
+    },
+    "notAuthorizedTitle": "Not authorized",
+    "notAuthorizedBody": "Your role doesn't have access to this page."
+  },
+  "roles": {
+    "admin": "Admin",
+    "treasurer": "Treasurer",
+    "vp": "Vice President",
+    "president": "President",
+    "data_entry": "Data Entry"
+  },
+  "settingsPage": {
+    "title": "Settings",
+    "subtitle": "Committee-wide fee and eligibility rules. Changing a value keeps the old one in history.",
+    "currentValue": "Current value",
+    "effectiveSince": "Effective since {date}",
+    "history": "History",
+    "edit": "Edit",
+    "editTitle": "Update {label}",
+    "newValue": "New value",
+    "effectiveFrom": "Effective from",
+    "effectiveFromHint": "Defaults to today. Must be after the current effective date.",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "saveError": "Could not save this setting.",
+    "keys": {
+      "baseFee": {
+        "label": "Base monthly fee",
+        "description": "Standard monthly membership fee charged per member."
+      },
+      "newMemberMultiplier": {
+        "label": "New-member fee multiplier",
+        "description": "Multiplier applied to the base fee during a new member's first months."
+      },
+      "newMemberMonths": {
+        "label": "New-member fee period (months)",
+        "description": "How many months the new-member multiplier applies for."
+      },
+      "eligibilityMonths": {
+        "label": "Fund eligibility wait (months)",
+        "description": "Minimum months of active membership before fund payouts can be claimed."
+      },
+      "removalMonths": {
+        "label": "Removal threshold (months)",
+        "description": "Consecutive unpaid months before a member is flagged for removal review."
+      }
+    }
+  },
+  "membersPage": {
+    "title": "Members",
+    "addMember": "Add member",
+    "searchPlaceholder": "Search by name, CNIC, serial no, mobile...",
+    "empty": "No members found.",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "removed": "Removed",
+      "deceased": "Deceased"
+    },
+    "table": {
+      "serialNo": "Serial No",
+      "name": "Name",
+      "cnic": "CNIC",
+      "mobile": "Mobile",
+      "status": "Status",
+      "fundEligible": "Fund Eligible"
+    },
+    "status": {
+      "active": "Active",
+      "removed": "Removed",
+      "deceased": "Deceased"
+    },
+    "eligible": "Eligible",
+    "notEligible": "Not eligible"
+  },
+  "memberForm": {
+    "newTitle": "Register member",
+    "editTitle": "Edit member",
+    "sectionProfile": "Profile",
+    "sectionDependents": "Dependents",
+    "fields": {
+      "name": "Name",
+      "fatherName": "Father's name",
+      "cnic": "CNIC",
+      "cnicHint": "Format: 12345-1234567-1",
+      "serialNo": "Serial No",
+      "mobile": "Mobile",
+      "address": "Address",
+      "maritalStatus": "Marital status",
+      "occupation": "Occupation",
+      "income": "Monthly income",
+      "dob": "Date of birth",
+      "originalJoinDate": "Join date"
+    },
+    "maritalStatus": {
+      "single": "Single",
+      "married": "Married",
+      "widowed": "Widowed",
+      "divorced": "Divorced"
+    },
+    "relation": {
+      "spouse": "Spouse",
+      "son": "Son",
+      "daughter": "Daughter",
+      "father": "Father",
+      "mother": "Mother",
+      "other": "Other"
+    },
+    "dependentFields": {
+      "name": "Name",
+      "relation": "Relation",
+      "maritalStatus": "Marital status",
+      "dob": "Date of birth",
+      "occupation": "Occupation",
+      "notes": "Notes"
+    },
+    "addDependent": "Add dependent",
+    "removeDependent": "Remove",
+    "noDependents": "No dependents added yet.",
+    "save": "Save member",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "errors": {
+      "required": "This field is required.",
+      "invalidCnic": "Format: 12345-1234567-1",
+      "invalidMobile": "Enter a valid mobile number.",
+      "invalidNumber": "Must be a number.",
+      "cnicTaken": "This CNIC is already registered.",
+      "serialTaken": "This serial number is already in use.",
+      "generic": "Could not save this member."
+    }
+  },
+  "memberDetail": {
+    "tabs": {
+      "profile": "Profile",
+      "dependents": "Dependents",
+      "payments": "Payment History",
+      "payouts": "Payouts"
+    },
+    "status": "Status",
+    "fundEligible": "Fund eligibility",
+    "unpaidMonths": "Consecutive unpaid months",
+    "originalJoinDate": "Original join date",
+    "currentJoinDate": "Current join date",
+    "removedDate": "Removed / death date",
+    "removedReason": "Reason",
+    "predecessorOf": "Successor of {name}",
+    "succeededByLabel": "Succeeded by {name}",
+    "editButton": "Edit",
+    "markDeceasedButton": "Record death & successor",
+    "removeButton": "Remove member",
+    "noDependents": "No dependents on file.",
+    "noPayments": "No payments recorded yet.",
+    "noPayouts": "No payout requests yet.",
+    "notFound": "Member not found."
+  },
+  "succession": {
+    "title": "Record death & successor",
+    "description": "Marks {name} deceased and links a successor who immediately inherits fund eligibility.",
+    "removedDateLabel": "Date of death",
+    "modeLabel": "Successor",
+    "modePromoteDependent": "Promote an existing dependent",
+    "modeNewMember": "Register a new member",
+    "selectDependentLabel": "Dependent",
+    "noDependentsAvailable": "This member has no dependents on file — register a new member instead.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "successTitle": "Successor recorded",
+    "successBody": "{deceasedName} is now marked deceased. {successorName} inherits their join date and is immediately fund-eligible — a funeral fund payout can now be requested once the Payouts module is built (step 7).",
+    "done": "Done"
+  },
+  "removal": {
+    "title": "Remove member",
+    "description": "Marks {name} as removed. This is a manual action — the auto-flagging job for 3 consecutive unpaid months isn't wired up yet.",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "e.g. 3 consecutive unpaid months",
+    "confirm": "Remove member",
+    "cancel": "Cancel",
+    "saving": "Removing..."
+  },
+  "paymentsPage": {
+    "title": "Payments",
+    "collectTitle": "Collect Payment",
+    "collectDescription": "Record a member's monthly fee",
+    "defaultersTitle": "Defaulters",
+    "defaultersDescription": "Members behind on payments"
+  },
+  "collectPayment": {
+    "title": "Collect Payment",
+    "searchLabel": "Find member",
+    "searchPlaceholder": "Search by name, CNIC, or serial no...",
+    "noResults": "No matching members",
+    "changeMember": "Change member",
+    "removedNotice": "This member was removed on {date}. Reason: {reason}",
+    "reactivateLabel": "Reactivate this member and record their arrears",
+    "outstandingTitle": "Outstanding months",
+    "noOutstanding": "This member has no outstanding months — fully paid up.",
+    "month": "Month",
+    "amount": "Amount",
+    "doubleFeeTag": "2x",
+    "total": "Total",
+    "submit": "Record payment",
+    "submitting": "Recording...",
+    "success": "Payment recorded for {count} month(s). Receipt(s): {receipts}",
+    "recordAnother": "Record another payment",
+    "errors": {
+      "reactivationRequired": "This member is removed. Check the reactivate box to record arrears.",
+      "alreadyPaid": "One of the selected months is already paid — refresh and try again.",
+      "deceased": "Cannot record a payment for a deceased member.",
+      "noneSelected": "Select at least one month.",
+      "generic": "Could not record this payment."
+    }
+  },
+  "defaulters": {
+    "title": "Defaulters",
+    "description": "Members with unpaid months, sorted by severity.",
+    "empty": "No defaulters — everyone is paid up.",
+    "table": {
+      "name": "Name",
+      "serialNo": "Serial No",
+      "mobile": "Mobile",
+      "unpaidMonths": "Unpaid Months"
+    },
+    "monthsBehind": "{count} month(s) behind",
+    "pendingReview": "Pending removal review"
+  },
+  "payoutsPage": {
+    "title": "Payouts",
+    "requestTitle": "Request Payout",
+    "requestDescription": "Request a fund payout for a member",
+    "vpQueueTitle": "VP Approval Queue",
+    "vpQueueDescription": "Payouts awaiting your approval",
+    "presidentQueueTitle": "President Approval Queue",
+    "presidentQueueDescription": "Payouts awaiting your approval",
+    "myRequestsTitle": "My Requests",
+    "myRequestsDescription": "Payouts you've requested",
+    "noAccess": "You don't have access to any payout actions yet."
+  },
+  "payoutStatus": {
+    "requested": "Requested",
+    "vp_approved": "VP Approved",
+    "vp_rejected": "VP Rejected",
+    "president_approved": "President Approved",
+    "president_rejected": "President Rejected",
+    "paid": "Paid"
+  },
+  "payoutType": {
+    "funeral": "Funeral",
+    "widow": "Widow Support",
+    "other": "Other"
+  },
+  "payoutRequest": {
+    "title": "Request Payout",
+    "memberLabel": "Member",
+    "changeMember": "Change member",
+    "payoutTypeLabel": "Payout type",
+    "amountLabel": "Amount",
+    "reasonLabel": "Reason / notes",
+    "submit": "Submit request",
+    "submitting": "Submitting...",
+    "success": "Payout request submitted.",
+    "requestAnother": "Request another payout",
+    "notEligibleTitle": "Not fund-eligible",
+    "notEligibleBody": "This member has been active for {monthsActive} month(s); fund payouts require more than {eligibilityMonths}.",
+    "deceasedHint": "This member is deceased — \"Funeral\" has been pre-selected below, but you can change it.",
+    "errors": {
+      "generic": "Could not submit this payout request."
+    }
+  },
+  "payoutQueue": {
+    "empty": "Nothing waiting for your approval.",
+    "type": "Type",
+    "amount": "Amount",
+    "reason": "Reason",
+    "requestedBy": "Requested by {name}",
+    "vpApprovedBy": "VP approved by {name}",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectTitle": "Reject this payout",
+    "rejectReasonLabel": "Reason for rejection",
+    "confirmApproveTitle": "Approve this payout?",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "submitting": "Saving...",
+    "markPaidButton": "Mark paid",
+    "markPaidTitle": "Mark this payout as paid",
+    "paidDateLabel": "Paid date",
+    "errors": {
+      "generic": "Could not save this decision."
+    }
+  },
+  "myRequests": {
+    "title": "My Requests",
+    "empty": "You haven't requested any payouts yet.",
+    "rejectedByVp": "Rejected by VP: {reason}",
+    "rejectedByPresident": "Rejected by President: {reason}"
+  },
+  "ledgerCommon": {
+    "addEntry": "Add entry",
+    "editEntry": "Edit entry",
+    "dateLabel": "Date",
+    "amountLabel": "Amount",
+    "fromLabel": "From",
+    "toLabel": "To",
+    "total": "Total",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteTitle": "Delete this entry?",
+    "deleteDescription": "This removes it from lists and totals, but it isn't permanently erased.",
+    "deleting": "Deleting...",
+    "confirm": "Delete",
+    "empty": "No entries yet.",
+    "errors": {
+      "generic": "Could not save this entry.",
+      "required": "This field is required."
+    }
+  },
+  "incomeLedger": {
+    "title": "Income",
+    "sourceLabel": "Source",
+    "descriptionLabel": "Description",
+    "table": {
+      "date": "Date",
+      "source": "Source",
+      "amount": "Amount"
+    }
+  },
+  "donationLedger": {
+    "title": "Donations",
+    "donorNameLabel": "Donor name",
+    "donorContactLabel": "Donor contact",
+    "notesLabel": "Notes",
+    "table": {
+      "date": "Date",
+      "donorName": "Donor",
+      "amount": "Amount"
+    }
+  },
+  "expenseLedger": {
+    "title": "Expenses",
+    "categoryLabel": "Category",
+    "descriptionLabel": "Description",
+    "approvedByLabel": "Approved by",
+    "categoryFilterLabel": "Category",
+    "allCategories": "All categories",
+    "table": {
+      "date": "Date",
+      "category": "Category",
+      "amount": "Amount"
+    }
+  }
+}

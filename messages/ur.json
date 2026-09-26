@@ -1,0 +1,398 @@
+{
+  "app": {
+    "name": "خاندانی فلاحی کمیٹی"
+  },
+  "nav": {
+    "dashboard": "ڈیش بورڈ",
+    "members": "اراکین",
+    "payments": "ادائیگیاں",
+    "payouts": "فنڈ ادائیگی",
+    "more": "مزید",
+    "income": "آمدنی",
+    "donations": "عطیات",
+    "expenses": "اخراجات",
+    "settings": "ترتیبات",
+    "reports": "رپورٹس"
+  },
+  "topbar": {
+    "searchPlaceholder": "نام، شناختی کارڈ، سیریل نمبر یا موبائل سے تلاش کریں...",
+    "toggleSidebar": "سائیڈبار دکھائیں/چھپائیں"
+  },
+  "locale": {
+    "english": "English",
+    "urdu": "اردو",
+    "switchLabel": "زبان"
+  },
+  "common": {
+    "comingSoon": "جلد آ رہا ہے"
+  },
+  "auth": {
+    "loginTitle": "لاگ ان",
+    "loginSubtitle": "خاندانی فلاحی کمیٹی مینجمنٹ سسٹم",
+    "email": "ای میل",
+    "password": "پاس ورڈ",
+    "signIn": "لاگ ان کریں",
+    "signingIn": "لاگ ان ہو رہا ہے...",
+    "signOut": "لاگ آؤٹ",
+    "invalidCredentials": "ای میل یا پاس ورڈ درست نہیں ہے۔",
+    "genericError": "کچھ غلط ہو گیا۔ براہ کرم دوبارہ کوشش کریں۔",
+    "errors": {
+      "invalidEmail": "درست ای میل ایڈریس درج کریں۔",
+      "required": "یہ خانہ پر کرنا ضروری ہے۔"
+    },
+    "notAuthorizedTitle": "اجازت نہیں",
+    "notAuthorizedBody": "آپ کے کردار کو اس صفحے تک رسائی حاصل نہیں ہے۔"
+  },
+  "roles": {
+    "admin": "ایڈمن",
+    "treasurer": "خزانچی",
+    "vp": "نائب صدر",
+    "president": "صدر",
+    "data_entry": "ڈیٹا انٹری"
+  },
+  "settingsPage": {
+    "title": "ترتیبات",
+    "subtitle": "کمیٹی کے فیس اور اہلیت کے قوانین۔ قدر تبدیل کرنے سے پرانی قدر تاریخ میں محفوظ رہتی ہے۔",
+    "currentValue": "موجودہ قدر",
+    "effectiveSince": "{date} سے نافذ العمل",
+    "history": "تاریخچہ",
+    "edit": "ترمیم",
+    "editTitle": "{label} کو اپ ڈیٹ کریں",
+    "newValue": "نئی قدر",
+    "effectiveFrom": "نفاذ کی تاریخ",
+    "effectiveFromHint": "طے شدہ طور پر آج کی تاریخ۔ موجودہ نافذ العمل تاریخ کے بعد ہونا ضروری ہے۔",
+    "save": "محفوظ کریں",
+    "saving": "محفوظ ہو رہا ہے...",
+    "cancel": "منسوخ کریں",
+    "saveError": "یہ ترتیب محفوظ نہیں ہو سکی۔",
+    "keys": {
+      "baseFee": {
+        "label": "بنیادی ماہانہ فیس",
+        "description": "ہر رکن سے وصول کی جانے والی معیاری ماہانہ رکنیت فیس۔"
+      },
+      "newMemberMultiplier": {
+        "label": "نئے رکن کی فیس ضرب",
+        "description": "نئے رکن کے ابتدائی مہینوں میں بنیادی فیس پر لاگو ہونے والی ضرب۔"
+      },
+      "newMemberMonths": {
+        "label": "نئے رکن کی فیس کی مدت (مہینے)",
+        "description": "نئے رکن کی ضرب کتنے مہینوں تک لاگو رہتی ہے۔"
+      },
+      "eligibilityMonths": {
+        "label": "فنڈ کی اہلیت کا انتظار (مہینے)",
+        "description": "فنڈ کی ادائیگی کا دعویٰ کرنے سے پہلے فعال رکنیت کے کم از کم مہینے۔"
+      },
+      "removalMonths": {
+        "label": "اخراج کی حد (مہینے)",
+        "description": "رکن کو نظرثانی کے لیے نشان زد کرنے سے پہلے مسلسل غیر ادا شدہ مہینے۔"
+      }
+    }
+  },
+  "membersPage": {
+    "title": "اراکین",
+    "addMember": "رکن شامل کریں",
+    "searchPlaceholder": "نام، شناختی کارڈ، سیریل نمبر یا موبائل سے تلاش کریں...",
+    "empty": "کوئی رکن نہیں ملا۔",
+    "filters": {
+      "all": "تمام",
+      "active": "فعال",
+      "removed": "خارج شدہ",
+      "deceased": "متوفی"
+    },
+    "table": {
+      "serialNo": "سیریل نمبر",
+      "name": "نام",
+      "cnic": "شناختی کارڈ",
+      "mobile": "موبائل",
+      "status": "حیثیت",
+      "fundEligible": "فنڈ اہلیت"
+    },
+    "status": {
+      "active": "فعال",
+      "removed": "خارج شدہ",
+      "deceased": "متوفی"
+    },
+    "eligible": "اہل",
+    "notEligible": "نااہل"
+  },
+  "memberForm": {
+    "newTitle": "رکن کا اندراج",
+    "editTitle": "رکن میں ترمیم",
+    "sectionProfile": "پروفائل",
+    "sectionDependents": "زیر کفالت افراد",
+    "fields": {
+      "name": "نام",
+      "fatherName": "والد کا نام",
+      "cnic": "شناختی کارڈ نمبر",
+      "cnicHint": "فارمیٹ: 12345-1234567-1",
+      "serialNo": "سیریل نمبر",
+      "mobile": "موبائل نمبر",
+      "address": "پتہ",
+      "maritalStatus": "ازدواجی حیثیت",
+      "occupation": "پیشہ",
+      "income": "ماہانہ آمدنی",
+      "dob": "تاریخ پیدائش",
+      "originalJoinDate": "شمولیت کی تاریخ"
+    },
+    "maritalStatus": {
+      "single": "غیر شادی شدہ",
+      "married": "شادی شدہ",
+      "widowed": "بیوہ",
+      "divorced": "طلاق یافتہ"
+    },
+    "relation": {
+      "spouse": "شریک حیات",
+      "son": "بیٹا",
+      "daughter": "بیٹی",
+      "father": "والد",
+      "mother": "والدہ",
+      "other": "دیگر"
+    },
+    "dependentFields": {
+      "name": "نام",
+      "relation": "رشتہ",
+      "maritalStatus": "ازدواجی حیثیت",
+      "dob": "تاریخ پیدائش",
+      "occupation": "پیشہ",
+      "notes": "نوٹس"
+    },
+    "addDependent": "زیر کفالت شامل کریں",
+    "removeDependent": "حذف کریں",
+    "noDependents": "ابھی تک کوئی زیر کفالت شامل نہیں کیا گیا۔",
+    "save": "رکن محفوظ کریں",
+    "saving": "محفوظ ہو رہا ہے...",
+    "cancel": "منسوخ کریں",
+    "errors": {
+      "required": "یہ خانہ پر کرنا ضروری ہے۔",
+      "invalidCnic": "فارمیٹ: 12345-1234567-1",
+      "invalidMobile": "درست موبائل نمبر درج کریں۔",
+      "invalidNumber": "عدد درج کریں۔",
+      "cnicTaken": "یہ شناختی کارڈ پہلے سے رجسٹرڈ ہے۔",
+      "serialTaken": "یہ سیریل نمبر پہلے سے استعمال میں ہے۔",
+      "generic": "یہ رکن محفوظ نہیں ہو سکا۔"
+    }
+  },
+  "memberDetail": {
+    "tabs": {
+      "profile": "پروفائل",
+      "dependents": "زیر کفالت افراد",
+      "payments": "ادائیگی کی تاریخ",
+      "payouts": "فنڈ ادائیگی"
+    },
+    "status": "حیثیت",
+    "fundEligible": "فنڈ اہلیت",
+    "unpaidMonths": "مسلسل غیر ادا شدہ مہینے",
+    "originalJoinDate": "اصل شمولیت کی تاریخ",
+    "currentJoinDate": "موجودہ شمولیت کی تاریخ",
+    "removedDate": "اخراج/وفات کی تاریخ",
+    "removedReason": "وجہ",
+    "predecessorOf": "{name} کا جانشین",
+    "succeededByLabel": "{name} کی جانب سے جانشینی",
+    "editButton": "ترمیم",
+    "markDeceasedButton": "وفات اور جانشین درج کریں",
+    "removeButton": "رکن کو خارج کریں",
+    "noDependents": "کوئی زیر کفالت فرد موجود نہیں۔",
+    "noPayments": "ابھی تک کوئی ادائیگی درج نہیں۔",
+    "noPayouts": "ابھی تک فنڈ کی کوئی درخواست نہیں۔",
+    "notFound": "رکن نہیں ملا۔"
+  },
+  "succession": {
+    "title": "وفات اور جانشین درج کریں",
+    "description": "{name} کو متوفی قرار دیتا ہے اور ایک جانشین کو منسلک کرتا ہے جو فوری طور پر فنڈ کی اہلیت کا وارث بنتا ہے۔",
+    "removedDateLabel": "وفات کی تاریخ",
+    "modeLabel": "جانشین",
+    "modePromoteDependent": "موجودہ زیر کفالت کو ترقی دیں",
+    "modeNewMember": "نیا رکن رجسٹر کریں",
+    "selectDependentLabel": "زیر کفالت فرد",
+    "noDependentsAvailable": "اس رکن کا کوئی زیر کفالت فرد درج نہیں — اس کے بجائے نیا رکن رجسٹر کریں۔",
+    "confirm": "تصدیق کریں",
+    "cancel": "منسوخ کریں",
+    "saving": "محفوظ ہو رہا ہے...",
+    "successTitle": "جانشین درج ہو گیا",
+    "successBody": "{deceasedName} کو اب متوفی کے طور پر نشان زد کر دیا گیا ہے۔ {successorName} ان کی شمولیت کی تاریخ کا وارث بنتا ہے اور فوری طور پر فنڈ کا اہل ہے — فنڈ ادائیگی ماڈیول (مرحلہ 7) کی تکمیل کے بعد اس کے لیے درخواست دی جا سکتی ہے۔",
+    "done": "مکمل"
+  },
+  "removal": {
+    "title": "رکن کو خارج کریں",
+    "description": "{name} کو خارج شدہ کے طور پر نشان زد کرتا ہے۔ یہ ایک دستی عمل ہے — 3 مسلسل غیر ادا شدہ مہینوں کے لیے خودکار نشان زدگی ابھی فعال نہیں کی گئی۔",
+    "reasonLabel": "وجہ",
+    "reasonPlaceholder": "مثلاً 3 مسلسل غیر ادا شدہ مہینے",
+    "confirm": "رکن کو خارج کریں",
+    "cancel": "منسوخ کریں",
+    "saving": "خارج کیا جا رہا ہے..."
+  },
+  "paymentsPage": {
+    "title": "ادائیگیاں",
+    "collectTitle": "ادائیگی وصول کریں",
+    "collectDescription": "رکن کی ماہانہ فیس درج کریں",
+    "defaultersTitle": "نادہندگان",
+    "defaultersDescription": "وہ اراکین جو ادائیگی میں پیچھے ہیں"
+  },
+  "collectPayment": {
+    "title": "ادائیگی وصول کریں",
+    "searchLabel": "رکن تلاش کریں",
+    "searchPlaceholder": "نام، شناختی کارڈ، یا سیریل نمبر سے تلاش کریں...",
+    "noResults": "کوئی رکن نہیں ملا",
+    "changeMember": "رکن تبدیل کریں",
+    "removedNotice": "یہ رکن {date} کو خارج کیا گیا تھا۔ وجہ: {reason}",
+    "reactivateLabel": "اس رکن کو دوبارہ فعال کریں اور واجبات درج کریں",
+    "outstandingTitle": "واجب الادا مہینے",
+    "noOutstanding": "اس رکن کے کوئی واجب الادا مہینے نہیں ہیں — مکمل ادائیگی ہو چکی ہے۔",
+    "month": "مہینہ",
+    "amount": "رقم",
+    "doubleFeeTag": "2x",
+    "total": "کل رقم",
+    "submit": "ادائیگی درج کریں",
+    "submitting": "درج ہو رہا ہے...",
+    "success": "{count} مہینے کی ادائیگی درج ہو گئی۔ رسید: {receipts}",
+    "recordAnother": "ایک اور ادائیگی درج کریں",
+    "errors": {
+      "reactivationRequired": "یہ رکن خارج شدہ ہے۔ واجبات درج کرنے کے لیے دوبارہ فعال کرنے کا خانہ نشان زد کریں۔",
+      "alreadyPaid": "منتخب کردہ مہینوں میں سے ایک پہلے ہی ادا ہو چکا ہے — صفحہ ریفریش کر کے دوبارہ کوشش کریں۔",
+      "deceased": "متوفی رکن کے لیے ادائیگی درج نہیں کی جا سکتی۔",
+      "noneSelected": "کم از کم ایک مہینہ منتخب کریں۔",
+      "generic": "یہ ادائیگی درج نہیں ہو سکی۔"
+    }
+  },
+  "defaulters": {
+    "title": "نادہندگان",
+    "description": "وہ اراکین جن کے مہینے غیر ادا شدہ ہیں، شدت کے لحاظ سے ترتیب دیے گئے۔",
+    "empty": "کوئی نادہندہ نہیں — سب کی ادائیگی مکمل ہے۔",
+    "table": {
+      "name": "نام",
+      "serialNo": "سیریل نمبر",
+      "mobile": "موبائل",
+      "unpaidMonths": "غیر ادا شدہ مہینے"
+    },
+    "monthsBehind": "{count} مہینے پیچھے",
+    "pendingReview": "اخراج کے لیے نظرثانی زیر التوا"
+  },
+  "payoutsPage": {
+    "title": "فنڈ ادائیگی",
+    "requestTitle": "ادائیگی کی درخواست",
+    "requestDescription": "کسی رکن کے لیے فنڈ ادائیگی کی درخواست دیں",
+    "vpQueueTitle": "نائب صدر کی منظوری کی قطار",
+    "vpQueueDescription": "آپ کی منظوری کے منتظر ادائیگیاں",
+    "presidentQueueTitle": "صدر کی منظوری کی قطار",
+    "presidentQueueDescription": "آپ کی منظوری کے منتظر ادائیگیاں",
+    "myRequestsTitle": "میری درخواستیں",
+    "myRequestsDescription": "آپ کی درخواست کردہ ادائیگیاں",
+    "noAccess": "آپ کے پاس ابھی کوئی فنڈ ادائیگی کا اختیار نہیں ہے۔"
+  },
+  "payoutStatus": {
+    "requested": "درخواست دی گئی",
+    "vp_approved": "نائب صدر سے منظور",
+    "vp_rejected": "نائب صدر سے مسترد",
+    "president_approved": "صدر سے منظور",
+    "president_rejected": "صدر سے مسترد",
+    "paid": "ادا شدہ"
+  },
+  "payoutType": {
+    "funeral": "جنازہ",
+    "widow": "بیوہ امداد",
+    "other": "دیگر"
+  },
+  "payoutRequest": {
+    "title": "ادائیگی کی درخواست",
+    "memberLabel": "رکن",
+    "changeMember": "رکن تبدیل کریں",
+    "payoutTypeLabel": "ادائیگی کی قسم",
+    "amountLabel": "رقم",
+    "reasonLabel": "وجہ / نوٹس",
+    "submit": "درخواست جمع کروائیں",
+    "submitting": "جمع ہو رہا ہے...",
+    "success": "ادائیگی کی درخواست جمع ہو گئی۔",
+    "requestAnother": "ایک اور درخواست دیں",
+    "notEligibleTitle": "فنڈ کے لیے نااہل",
+    "notEligibleBody": "یہ رکن {monthsActive} مہینے سے فعال ہے؛ فنڈ ادائیگی کے لیے {eligibilityMonths} سے زیادہ ضروری ہے۔",
+    "deceasedHint": "یہ رکن متوفی ہے — نیچے \"جنازہ\" پہلے سے منتخب کر دیا گیا ہے، آپ اسے تبدیل کر سکتے ہیں۔",
+    "errors": {
+      "generic": "یہ درخواست جمع نہیں ہو سکی۔"
+    }
+  },
+  "payoutQueue": {
+    "empty": "آپ کی منظوری کے منتظر کچھ نہیں۔",
+    "type": "قسم",
+    "amount": "رقم",
+    "reason": "وجہ",
+    "requestedBy": "{name} کی جانب سے درخواست",
+    "vpApprovedBy": "نائب صدر کی منظوری: {name}",
+    "approve": "منظور کریں",
+    "reject": "مسترد کریں",
+    "rejectTitle": "اس ادائیگی کو مسترد کریں",
+    "rejectReasonLabel": "استرداد کی وجہ",
+    "confirmApproveTitle": "کیا اس ادائیگی کو منظور کرنا ہے؟",
+    "cancel": "منسوخ کریں",
+    "confirm": "تصدیق کریں",
+    "submitting": "محفوظ ہو رہا ہے...",
+    "markPaidButton": "ادا شدہ نشان زد کریں",
+    "markPaidTitle": "اس ادائیگی کو ادا شدہ نشان زد کریں",
+    "paidDateLabel": "ادائیگی کی تاریخ",
+    "errors": {
+      "generic": "یہ فیصلہ محفوظ نہیں ہو سکا۔"
+    }
+  },
+  "myRequests": {
+    "title": "میری درخواستیں",
+    "empty": "آپ نے ابھی تک کوئی ادائیگی کی درخواست نہیں دی۔",
+    "rejectedByVp": "نائب صدر نے مسترد کیا: {reason}",
+    "rejectedByPresident": "صدر نے مسترد کیا: {reason}"
+  },
+  "ledgerCommon": {
+    "addEntry": "اندراج شامل کریں",
+    "editEntry": "اندراج میں ترمیم",
+    "dateLabel": "تاریخ",
+    "amountLabel": "رقم",
+    "fromLabel": "از",
+    "toLabel": "تا",
+    "total": "کل رقم",
+    "save": "محفوظ کریں",
+    "saving": "محفوظ ہو رہا ہے...",
+    "cancel": "منسوخ کریں",
+    "edit": "ترمیم",
+    "delete": "حذف کریں",
+    "deleteTitle": "کیا یہ اندراج حذف کرنا ہے؟",
+    "deleteDescription": "یہ فہرستوں اور مجموعی رقم سے ہٹا دیا جائے گا، لیکن مستقل طور پر ختم نہیں ہوگا۔",
+    "deleting": "حذف ہو رہا ہے...",
+    "confirm": "حذف کریں",
+    "empty": "ابھی تک کوئی اندراج نہیں۔",
+    "errors": {
+      "generic": "یہ اندراج محفوظ نہیں ہو سکا۔",
+      "required": "یہ خانہ پر کرنا ضروری ہے۔"
+    }
+  },
+  "incomeLedger": {
+    "title": "آمدنی",
+    "sourceLabel": "ذریعہ",
+    "descriptionLabel": "تفصیل",
+    "table": {
+      "date": "تاریخ",
+      "source": "ذریعہ",
+      "amount": "رقم"
+    }
+  },
+  "donationLedger": {
+    "title": "عطیات",
+    "donorNameLabel": "عطیہ دہندہ کا نام",
+    "donorContactLabel": "عطیہ دہندہ کا رابطہ",
+    "notesLabel": "نوٹس",
+    "table": {
+      "date": "تاریخ",
+      "donorName": "عطیہ دہندہ",
+      "amount": "رقم"
+    }
+  },
+  "expenseLedger": {
+    "title": "اخراجات",
+    "categoryLabel": "قسم",
+    "descriptionLabel": "تفصیل",
+    "approvedByLabel": "منظور کنندہ",
+    "categoryFilterLabel": "قسم",
+    "allCategories": "تمام اقسام",
+    "table": {
+      "date": "تاریخ",
+      "category": "قسم",
+      "amount": "رقم"
+    }
+  }
+}

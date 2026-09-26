@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Member {
+  id               String    @id @default(cuid())
+  serialNo         String    @unique
+  name             String
+  fatherName       String
+  cnic             String    @unique
+  mobile           String
+  address          String
+  maritalStatus    String
+  occupation       String
+  income           Decimal
+  dob              DateTime
+  originalJoinDate DateTime // preserved across rejoin/inheritance
+  currentJoinDate  DateTime // resets on rejoin (not on inheritance)
+  status           String    @default("active") // active | removed | deceased
+  removedDate      DateTime?
+  removedReason    String?
+  succeededById    String?   @unique // the member who inherited this membership after death
+  succeededBy      Member?   @relation("Succession", fields: [succeededById], references: [id])
+  predecessor      Member?   @relation("Succession")
+
+  dependents Dependent[]
+  payments   Payment[]
+  payouts    FundPayout[]
+  auditLogs  AuditLog[]
+
+  @@index([name])
+}
+
+model Dependent {
+  id            String   @id @default(cuid())
+  memberId      String
+  member        Member   @relation(fields: [memberId], references: [id])
+  name          String
+  relation      String
+  maritalStatus String
+  dob           DateTime
+  occupation    String
+  notes         String?
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  memberId     String
+  member       Member   @relation(fields: [memberId], references: [id])
+  monthCovered DateTime
+  amount       Decimal // locked at time of payment
+  wasDoubleFee Boolean  @default(false)
+  paidDate     DateTime
+  dueDate      DateTime // 15th of monthCovered
+  receiptNo    String   @unique
+  recordedById String
+  recordedBy   User     @relation(fields: [recordedById], references: [id])
+
+  @@unique([memberId, monthCovered])
+}
+
+model OtherIncome {
+  id          String    @id @default(cuid())
+  date        DateTime
+  source      String
+  amount      Decimal
+  description String?
+  deletedAt   DateTime? // soft delete — never hard-deleted, excluded from lists/totals
+
+  @@index([date])
+}
+
+model Donation {
+  id           String    @id @default(cuid())
+  date         DateTime
+  donorName    String
+  donorContact String?
+  amount       Decimal
+  notes        String?
+  deletedAt    DateTime? // soft delete — never hard-deleted, excluded from lists/totals
+
+  @@index([date])
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  date        DateTime
+  category    String
+  amount      Decimal
+  description String?
+  approvedBy  String?
+  deletedAt   DateTime? // soft delete — never hard-deleted, excluded from lists/totals
+
+  @@index([date])
+}
+
+model FundPayout {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id])
+  payoutType String // funeral | widow | other
+  amount     Decimal
+  reason     String?
+  status     String   @default("requested")
+  // requested | vp_approved | vp_rejected | president_approved | president_rejected | paid
+  requestedById    String
+  requestedBy      User      @relation("PayoutRequestedBy", fields: [requestedById], references: [id])
+  vpDecisionById   String?
+  vpDecisionBy     User?     @relation("PayoutVpDecisionBy", fields: [vpDecisionById], references: [id])
+  vpDecisionAt     DateTime?
+  vpRejectReason   String?
+  presDecisionById String?
+  presDecisionBy   User?     @relation("PayoutPresDecisionBy", fields: [presDecisionById], references: [id])
+  presDecisionAt   DateTime?
+  presRejectReason String?
+  paidDate         DateTime?
+}
+
+model Setting {
+  id            String   @id @default(cuid())
+  key           String // baseFee, newMemberMultiplier, newMemberMonths, eligibilityMonths, removalMonths
+  value         String
+  effectiveFrom DateTime
+
+  // Effective-dating means multiple historical rows per key over time, so `key`
+  // alone can no longer be @unique (see step 4 summary for why this changed
+  // from the spec's original schema listing).
+  @@unique([key, effectiveFrom])
+  @@index([key])
+}
+
+model User {
+  id       String    @id @default(cuid())
+  name     String
+  email    String    @unique
+  password String
+  role     String // admin | treasurer | vp | president | data_entry
+  payments Payment[]
+
+  payoutsRequested   FundPayout[] @relation("PayoutRequestedBy")
+  payoutsVpDecided   FundPayout[] @relation("PayoutVpDecisionBy")
+  payoutsPresDecided FundPayout[] @relation("PayoutPresDecisionBy")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String // Member | Payment | FundPayout | Expense ...
+  entityId   String
+  action     String // create | update | delete
+  changedBy  String
+  changes    Json
+  timestamp  DateTime @default(now())
+  memberId   String?
+  member     Member?  @relation(fields: [memberId], references: [id])
+}
