@@ -7,8 +7,9 @@ import { markPaid, PayoutError } from "@/lib/payouts";
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: RouteParams) {
+  let actorId: string;
   try {
-    await requireRole(["treasurer", "admin"]);
+    actorId = (await requireRole(["treasurer", "admin"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -25,7 +26,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   try {
-    const payout = await markPaid(id, parsed.data.paidDate);
+    const payout = await markPaid(id, parsed.data.paidDate, actorId);
     return NextResponse.json({ payout });
   } catch (error) {
     if (error instanceof PayoutError) {

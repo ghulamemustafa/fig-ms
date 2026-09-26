@@ -9,6 +9,7 @@ import {
   Receipt,
   FileBarChart,
   Settings,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,7 +25,8 @@ export type NavItem = {
     | "donations"
     | "expenses"
     | "reports"
-    | "settings";
+    | "settings"
+    | "auditLog";
   icon: LucideIcon;
 };
 
@@ -44,4 +46,5 @@ export const secondaryNavItems: NavItem[] = [
   { href: "/expenses", labelKey: "expenses", icon: Receipt },
   { href: "/reports", labelKey: "reports", icon: FileBarChart },
   { href: "/settings", labelKey: "settings", icon: Settings },
+  { href: "/audit-log", labelKey: "auditLog", icon: ScrollText },
 ];

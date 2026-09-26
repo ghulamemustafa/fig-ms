@@ -18,12 +18,21 @@ function utcDate(year: number, month: number, day: number) {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
+let actor: string;
+
 async function cleanup() {
+  const income = await prisma.otherIncome.findMany({ where: { source: { contains: MARKER } }, select: { id: true } });
+  const expenses = await prisma.expense.findMany({ where: { category: { contains: MARKER } }, select: { id: true } });
+  const ids = [...income, ...expenses].map((r) => r.id);
+  await prisma.auditLog.deleteMany({ where: { entityId: { in: ids } } });
   await prisma.otherIncome.deleteMany({ where: { source: { contains: MARKER } } });
   await prisma.expense.deleteMany({ where: { category: { contains: MARKER } } });
 }
 
-beforeAll(cleanup);
+beforeAll(async () => {
+  actor = (await prisma.user.findFirstOrThrow({ where: { role: "treasurer" } })).id;
+  await cleanup();
+});
 afterAll(async () => {
   await cleanup();
   await prisma.$disconnect();
@@ -35,11 +44,11 @@ describe("income totals", () => {
       date: utcDate(2026, 6, 1),
       source: `${MARKER}-a`,
       amount: 1000,
-    });
-    await createIncome({ date: utcDate(2026, 6, 2), source: `${MARKER}-b`, amount: 500 });
+    }, actor);
+    await createIncome({ date: utcDate(2026, 6, 2), source: `${MARKER}-b`, amount: 500 }, actor);
 
     const beforeDelete = await getIncomeTotal();
-    await softDeleteIncome(a.id);
+    await softDeleteIncome(a.id, actor);
     const afterDelete = await getIncomeTotal();
 
     expect(afterDelete).toBe(beforeDelete - 1000);
@@ -49,8 +58,8 @@ describe("income totals", () => {
   });
 
   it("filters by date range", async () => {
-    await createIncome({ date: utcDate(2020, 1, 1), source: `${MARKER}-old`, amount: 999 });
-    await createIncome({ date: utcDate(2026, 6, 15), source: `${MARKER}-in-range`, amount: 250 });
+    await createIncome({ date: utcDate(2020, 1, 1), source: `${MARKER}-old`, amount: 999 }, actor);
+    await createIncome({ date: utcDate(2026, 6, 15), source: `${MARKER}-in-range`, amount: 250 }, actor);
 
     const total = await getIncomeTotal({
       from: utcDate(2026, 6, 1),
@@ -75,12 +84,12 @@ describe("expense categories and totals", () => {
       date: utcDate(2026, 6, 1),
       category: `${MARKER}-Fuel`,
       amount: 300,
-    });
+    }, actor);
     await createExpense({
       date: utcDate(2026, 6, 2),
       category: `${MARKER}-Fuel`,
       amount: 200,
-    });
+    }, actor);
 
     const categories = await listExpenseCategories();
     expect(categories).toContain(`${MARKER}-Fuel`);

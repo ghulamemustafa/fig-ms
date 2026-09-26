@@ -23,8 +23,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  let actorId: string;
   try {
-    await requireRole(["admin", "data_entry"]);
+    actorId = (await requireRole(["admin", "data_entry"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -41,7 +42,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   try {
-    const member = await updateMember(id, parsed.data);
+    const member = await updateMember(id, parsed.data, actorId);
     return NextResponse.json({ member });
   } catch (error) {
     if (error instanceof DuplicateFieldError) {
@@ -56,8 +57,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
 /** Soft "remove" — sets status = removed with a reason. Admin only. */
 export async function DELETE(request: Request, { params }: RouteParams) {
+  let actorId: string;
   try {
-    await requireRole(["admin"]);
+    actorId = (await requireRole(["admin"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -73,6 +75,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     );
   }
 
-  const member = await removeMember(id, parsed.data.reason);
+  const member = await removeMember(id, parsed.data.reason, actorId);
   return NextResponse.json({ member });
 }

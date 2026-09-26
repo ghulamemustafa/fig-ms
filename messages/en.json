@@ -12,7 +12,8 @@
     "donations": "Donations",
     "expenses": "Expenses",
     "settings": "Settings",
-    "reports": "Reports"
+    "reports": "Reports",
+    "auditLog": "Audit Log"
   },
   "topbar": {
     "searchPlaceholder": "Search by name, CNIC, serial no, mobile...",
@@ -177,7 +178,8 @@
       "profile": "Profile",
       "dependents": "Dependents",
       "payments": "Payment History",
-      "payouts": "Payouts"
+      "payouts": "Payouts",
+      "history": "History"
     },
     "status": "Status",
     "fundEligible": "Fund eligibility",
@@ -194,7 +196,9 @@
     "noDependents": "No dependents on file.",
     "noPayments": "No payments recorded yet.",
     "noPayouts": "No payout requests yet.",
-    "notFound": "Member not found."
+    "notFound": "Member not found.",
+    "receipt": "Receipt",
+    "viewReceipt": "View / print receipt"
   },
   "succession": {
     "title": "Record death & successor",
@@ -252,7 +256,9 @@
       "deceased": "Cannot record a payment for a deceased member.",
       "noneSelected": "Select at least one month.",
       "generic": "Could not record this payment."
-    }
+    },
+    "viewReceipt": "View receipt",
+    "downloadReceipt": "Download receipt"
   },
   "defaulters": {
     "title": "Defaulters",
@@ -394,5 +400,116 @@
       "category": "Category",
       "amount": "Amount"
     }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "quickCollect": "Collect Payment",
+    "quickDefaulters": "Defaulters",
+    "pending": {
+      "title": "Pending your approval",
+      "vp": "Awaiting VP approval",
+      "president": "Awaiting President approval"
+    },
+    "members": {
+      "title": "Members",
+      "active": "Active",
+      "removed": "Removed",
+      "deceased": "Deceased",
+      "newThisMonth": "New this month"
+    },
+    "collection": {
+      "title": "This month's collection",
+      "collected": "Collected",
+      "expected": "Expected",
+      "outstanding": "Still owed"
+    },
+    "defaulters": {
+      "title": "Defaulters",
+      "one": "1 month behind",
+      "two": "2 months behind",
+      "threePlus": "3+ months (review)",
+      "viewAll": "View all defaulters"
+    },
+    "fund": {
+      "title": "Fund balance",
+      "balance": "Balance",
+      "payments": "Member payments",
+      "otherIncome": "Other income",
+      "donations": "Donations",
+      "expenses": "Expenses",
+      "paidPayouts": "Payouts paid"
+    },
+    "trend": {
+      "title": "Income vs expenses (last 6 months)",
+      "income": "Income",
+      "expense": "Expenses"
+    },
+    "recentPayouts": {
+      "title": "Recent payouts",
+      "empty": "No payout requests yet.",
+      "viewAll": "Go to Payouts"
+    }
+  },
+  "globalSearch": {
+    "label": "Search members",
+    "placeholder": "Search name, CNIC, serial no, mobile...",
+    "searching": "Searching...",
+    "noResults": "No members found"
+  },
+  "auditLog": {
+    "title": "Audit Log",
+    "subtitle": "Every create, update and delete, with who did it and what changed.",
+    "empty": "No audit entries.",
+    "by": "By {name}",
+    "rawChanges": "Full details",
+    "actions": {
+      "create": "Created",
+      "update": "Updated",
+      "delete": "Deleted"
+    },
+    "filters": {
+      "entityType": "Record type",
+      "user": "Changed by",
+      "from": "From",
+      "to": "To",
+      "all": "All",
+      "apply": "Apply"
+    },
+    "history": "History"
+  },
+  "reportsPage": {
+    "title": "Reports & Export",
+    "subtitle": "Download records as CSV or PDF, or a period statement for committee meetings.",
+    "reportLabel": "Report",
+    "entities": {
+      "members": "Members",
+      "payments": "Payments",
+      "payouts": "Payouts",
+      "income": "Other income",
+      "donations": "Donations",
+      "expenses": "Expenses",
+      "statement": "Period statement"
+    },
+    "hints": {
+      "members": "Date range filters by join date.",
+      "payments": "Date range filters by payment date.",
+      "payouts": "Date range matches any decision or paid date.",
+      "income": "Date range filters by entry date.",
+      "donations": "Date range filters by entry date.",
+      "expenses": "Date range filters by entry date.",
+      "statement": "Income, payouts, expenses and fund balance for the period (PDF only)."
+    },
+    "from": "From",
+    "to": "To",
+    "status": "Status",
+    "type": "Type",
+    "category": "Category",
+    "categoryHint": "Exact category name (optional)",
+    "member": "Member (optional)",
+    "clearMember": "Clear member",
+    "all": "All",
+    "invalidRange": "The end date must not be before the start date.",
+    "downloadCsv": "Download CSV",
+    "downloadPdf": "Download PDF"
   }
 }

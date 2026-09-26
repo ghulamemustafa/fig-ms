@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
 
 export const SETTING_KEYS = [
   "baseFee",
@@ -74,8 +75,10 @@ export async function getAllSettingsWithHistory(
 export async function insertSettingVersion(
   key: SettingKey,
   value: string,
-  effectiveFrom: Date
+  effectiveFrom: Date,
+  changedBy: string
 ): Promise<SettingRow> {
+  // Currently-effective row as of now — the "old value" an admin is replacing.
   const latest = await prisma.setting.findFirst({
     where: { key },
     orderBy: { effectiveFrom: "desc" },
@@ -85,5 +88,20 @@ export async function insertSettingVersion(
       "effectiveFrom must be after the current effective date for this setting"
     );
   }
-  return prisma.setting.create({ data: { key, value, effectiveFrom } });
+  return prisma.$transaction(async (tx) => {
+    const row = await tx.setting.create({ data: { key, value, effectiveFrom } });
+    await logAudit(tx, {
+      entityType: "Setting",
+      entityId: row.id,
+      action: "create",
+      changedBy,
+      changes: {
+        setting: key,
+        value: { from: latest?.value ?? null, to: value },
+        effectiveFrom: { from: latest?.effectiveFrom ?? null, to: effectiveFrom },
+        record: row,
+      },
+    });
+    return row;
+  });
 }

@@ -50,6 +50,7 @@ async function cleanupTestMembers() {
   });
   const ids = testMembers.map((m) => m.id);
   if (ids.length === 0) return;
+  await prisma.auditLog.deleteMany({ where: { memberId: { in: ids } } });
   await prisma.payment.deleteMany({ where: { memberId: { in: ids } } });
   await prisma.member.deleteMany({ where: { id: { in: ids } } });
 }
@@ -127,7 +128,7 @@ describe("getOutstandingMonths", () => {
 });
 
 describe("recordPayments", () => {
-  it("records multiple months in one call with unique receipts", async () => {
+  it("records multiple months in one call under a single shared receipt", async () => {
     const member = await makeTestMember({
       suffix: "multi1",
       originalJoinDate: utcDate(2026, 5, 5),
@@ -142,7 +143,7 @@ describe("recordPayments", () => {
     });
 
     expect(result.payments).toHaveLength(2);
-    expect(new Set(result.payments.map((p) => p.receiptNo)).size).toBe(2);
+    expect(new Set(result.payments.map((p) => p.receiptNo)).size).toBe(1);
     for (const payment of result.payments) {
       expect(Number(payment.amount)).toBe(500);
       expect(payment.wasDoubleFee).toBe(false);

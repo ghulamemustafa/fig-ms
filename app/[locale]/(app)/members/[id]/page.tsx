@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { useTranslations, useFormatter } from "next-intl";
-import { Pencil } from "lucide-react";
+import { FileText, Pencil } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
 import { hasRole } from "@/lib/rbac";
 import { getMemberById } from "@/lib/members";
+import { listAuditLogs, type AuditLogView } from "@/lib/audit-queries";
+import { AuditEntryList } from "@/components/audit/audit-entry-list";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +29,11 @@ export default async function MemberDetailPage({
 }) {
   const { id } = await params;
 
-  const [member, session] = await Promise.all([getMemberById(id), getSession()]);
+  const [member, session, history] = await Promise.all([
+    getMemberById(id),
+    getSession(),
+    listAuditLogs({ memberId: id, limit: 50 }),
+  ]);
   if (!member) notFound();
 
   const role = session?.user?.role;
@@ -41,6 +47,7 @@ export default async function MemberDetailPage({
       canEdit={canEdit}
       canSucceed={canSucceed}
       canRemove={canRemove}
+      history={history}
     />
   );
 }
@@ -50,11 +57,13 @@ function MemberDetailContent({
   canEdit,
   canSucceed,
   canRemove,
+  history,
 }: {
   member: NonNullable<Awaited<ReturnType<typeof getMemberById>>>;
   canEdit: boolean;
   canSucceed: boolean;
   canRemove: boolean;
+  history: AuditLogView[];
 }) {
   const t = useTranslations("memberDetail");
   const tMembers = useTranslations("membersPage");
@@ -111,6 +120,7 @@ function MemberDetailContent({
           <TabsTrigger value="dependents">{t("tabs.dependents")}</TabsTrigger>
           <TabsTrigger value="payments">{t("tabs.payments")}</TabsTrigger>
           <TabsTrigger value="payouts">{t("tabs.payouts")}</TabsTrigger>
+          <TabsTrigger value="history">{t("tabs.history")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
@@ -201,7 +211,7 @@ function MemberDetailContent({
                     <TableHead>Month</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Paid</TableHead>
-                    <TableHead>Receipt</TableHead>
+                    <TableHead>{t("receipt")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -215,7 +225,18 @@ function MemberDetailContent({
                         {p.wasDoubleFee ? " (2x)" : ""}
                       </TableCell>
                       <TableCell>{dateStr(p.paidDate)}</TableCell>
-                      <TableCell className="tabular-nums">{p.receiptNo}</TableCell>
+                      <TableCell className="tabular-nums">
+                        <a
+                          href={`/api/receipts/${encodeURIComponent(p.receiptNo)}`}
+                          target="_blank"
+                          rel="noopener"
+                          className="inline-flex items-center gap-1 underline"
+                          title={t("viewReceipt")}
+                        >
+                          <FileText className="size-3.5" />
+                          {p.receiptNo}
+                        </a>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -269,6 +290,9 @@ function MemberDetailContent({
               </Table>
             </div>
           )}
+        </TabsContent>
+        <TabsContent value="history">
+          <AuditEntryList entries={history} showMember={false} />
         </TabsContent>
       </Tabs>
     </div>

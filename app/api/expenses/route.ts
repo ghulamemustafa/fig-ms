@@ -39,8 +39,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let actorId: string;
   try {
-    await requireRole(["treasurer", "data_entry", "admin"]);
+    actorId = (await requireRole(["treasurer", "data_entry", "admin"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -55,6 +56,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const entry = await createExpense(parsed.data);
+  const entry = await createExpense(parsed.data, actorId);
   return NextResponse.json({ entry }, { status: 201 });
 }

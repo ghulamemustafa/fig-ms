@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { auditCreate, auditUpdate, logAudit } from "@/lib/audit";
 import { getFundEligibilityDetail, isFundEligible, consecutiveUnpaidMonths } from "@/lib/rules";
 import type {
   CreateMemberInput,
@@ -46,16 +47,18 @@ async function assertUnique(
 export async function listMembers(params: {
   status?: MemberStatus;
   search?: string;
+  limit?: number;
 }) {
+  const insensitive = { mode: "insensitive" as const };
   const where = {
     ...(params.status ? { status: params.status } : {}),
     ...(params.search
       ? {
           OR: [
-            { name: { contains: params.search, mode: "insensitive" as const } },
-            { cnic: { contains: params.search } },
-            { serialNo: { contains: params.search } },
-            { mobile: { contains: params.search } },
+            { name: { contains: params.search, ...insensitive } },
+            { cnic: { contains: params.search, ...insensitive } },
+            { serialNo: { contains: params.search, ...insensitive } },
+            { mobile: { contains: params.search, ...insensitive } },
           ],
         }
       : {}),
@@ -64,6 +67,7 @@ export async function listMembers(params: {
   const members = await prisma.member.findMany({
     where,
     orderBy: { serialNo: "asc" },
+    ...(params.limit ? { take: params.limit } : {}),
   });
 
   const withEligibility = await Promise.all(
@@ -113,28 +117,33 @@ function dependentCreateData(dependents: DependentInput[]) {
   }));
 }
 
-// NOTE: each of these is a single, self-contained mutation — the intended
-// hook point for step 11's audit logging (wrap the call, diff before/after,
-// write an AuditLog row keyed to entityType "Member").
-
-export async function createMember(input: CreateMemberInput) {
+export async function createMember(input: CreateMemberInput, changedBy: string) {
   await assertUnique(input);
 
   const { dependents, originalJoinDate, ...fields } = input;
 
-  return prisma.member.create({
-    data: {
-      ...fields,
-      originalJoinDate,
-      currentJoinDate: originalJoinDate, // fresh registration: both start equal
-      status: "active",
-      dependents: { create: dependentCreateData(dependents) },
-    },
-    include: { dependents: true },
+  return prisma.$transaction(async (tx) => {
+    const member = await tx.member.create({
+      data: {
+        ...fields,
+        originalJoinDate,
+        currentJoinDate: originalJoinDate, // fresh registration: both start equal
+        status: "active",
+        dependents: { create: dependentCreateData(dependents) },
+      },
+      include: { dependents: true },
+    });
+
+    const { dependents: created, ...memberRow } = member;
+    await auditCreate(tx, { entityType: "Member", record: memberRow, changedBy, memberId: member.id });
+    for (const dep of created) {
+      await auditCreate(tx, { entityType: "Dependent", record: dep, changedBy, memberId: member.id });
+    }
+    return member;
   });
 }
 
-export async function updateMember(id: string, input: UpdateMemberInput) {
+export async function updateMember(id: string, input: UpdateMemberInput, changedBy: string) {
   await assertUnique(input, id);
 
   const { dependents, ...fields } = input;
@@ -144,9 +153,17 @@ export async function updateMember(id: string, input: UpdateMemberInput) {
   const toDelete = existing.filter((d) => !keptIds.has(d.id));
 
   return prisma.$transaction(async (tx) => {
-    if (toDelete.length > 0) {
-      await tx.dependent.deleteMany({
-        where: { id: { in: toDelete.map((d) => d.id) } },
+    const before = await tx.member.findUniqueOrThrow({ where: { id } });
+
+    for (const gone of toDelete) {
+      await tx.dependent.delete({ where: { id: gone.id } });
+      await logAudit(tx, {
+        entityType: "Dependent",
+        entityId: gone.id,
+        action: "delete",
+        changedBy,
+        changes: gone,
+        memberId: id,
       });
     }
 
@@ -160,36 +177,58 @@ export async function updateMember(id: string, input: UpdateMemberInput) {
         notes: dep.notes || null,
       };
       if (dep.id) {
-        await tx.dependent.update({ where: { id: dep.id }, data });
+        const prev = existing.find((d) => d.id === dep.id);
+        const next = await tx.dependent.update({ where: { id: dep.id }, data });
+        if (prev) {
+          await auditUpdate(tx, { entityType: "Dependent", before: prev, after: next, changedBy, memberId: id });
+        }
       } else {
-        await tx.dependent.create({ data: { ...data, memberId: id } });
+        const created = await tx.dependent.create({ data: { ...data, memberId: id } });
+        await auditCreate(tx, { entityType: "Dependent", record: created, changedBy, memberId: id });
       }
     }
 
-    return tx.member.update({
+    const after = await tx.member.update({
       where: { id },
       data: fields,
       include: { dependents: true },
     });
+    const { dependents: _deps, ...afterRow } = after;
+    void _deps;
+    await auditUpdate(tx, { entityType: "Member", before, after: afterRow, changedBy, memberId: id });
+    return after;
   });
 }
 
-export async function removeMember(id: string, reason: string) {
-  return prisma.member.update({
-    where: { id },
-    data: {
-      status: "removed",
-      removedDate: new Date(),
-      removedReason: reason,
-    },
+/** Soft removal. The reason lands in both the Member row and the audit entry. */
+export async function removeMember(id: string, reason: string, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.member.findUniqueOrThrow({ where: { id } });
+    const after = await tx.member.update({
+      where: { id },
+      data: { status: "removed", removedDate: new Date(), removedReason: reason },
+    });
+    await auditUpdate(tx, {
+      entityType: "Member",
+      before,
+      after,
+      changedBy,
+      memberId: id,
+      extra: { event: "removed", reason },
+    });
+    return after;
   });
 }
 
 /**
- * Marks `deceasedId` deceased and creates/links a successor who inherits
+ * Marks the member deceased and creates/links a successor who inherits
  * originalJoinDate (immediate fund eligibility) with currentJoinDate = now.
  */
-export async function succeedMember(deceasedId: string, input: SucceedMemberInput) {
+export async function succeedMember(
+  deceasedId: string,
+  input: SucceedMemberInput,
+  changedBy: string
+) {
   const deceased = await prisma.member.findUnique({ where: { id: deceasedId } });
   if (!deceased) throw new Error("Member not found");
   if (deceased.succeededById) {
@@ -228,6 +267,12 @@ export async function succeedMember(deceasedId: string, input: SucceedMemberInpu
         },
       });
       successorId = successor.id;
+      await auditCreate(tx, {
+        entityType: "Member",
+        record: successor,
+        changedBy,
+        memberId: successor.id,
+      });
     } else {
       await assertUnique({ cnic: input.cnic, serialNo: input.serialNo });
       const successor = await tx.member.create({
@@ -247,17 +292,27 @@ export async function succeedMember(deceasedId: string, input: SucceedMemberInpu
           status: "active",
           dependents: { create: dependentCreateData(input.dependents) },
         },
+        include: { dependents: true },
       });
       successorId = successor.id;
+      const { dependents: createdDeps, ...successorRow } = successor;
+      await auditCreate(tx, { entityType: "Member", record: successorRow, changedBy, memberId: successor.id });
+      for (const dep of createdDeps) {
+        await auditCreate(tx, { entityType: "Dependent", record: dep, changedBy, memberId: successor.id });
+      }
     }
 
-    await tx.member.update({
+    const deceasedAfter = await tx.member.update({
       where: { id: deceasedId },
-      data: {
-        status: "deceased",
-        removedDate,
-        succeededById: successorId,
-      },
+      data: { status: "deceased", removedDate, succeededById: successorId },
+    });
+    await auditUpdate(tx, {
+      entityType: "Member",
+      before: deceased,
+      after: deceasedAfter,
+      changedBy,
+      memberId: deceasedId,
+      extra: { event: "deceased", successorId, successorMode: input.mode },
     });
 
     return tx.member.findUniqueOrThrow({ where: { id: successorId } });

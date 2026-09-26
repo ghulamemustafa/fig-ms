@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { secondaryNavItems } from "@/lib/nav-items";
+import { REPORTS_ROLES } from "@/lib/export-access";
 import { RoleGate } from "@/components/auth/role-gate";
 
 export default function MorePage() {
@@ -22,8 +23,8 @@ export default function MorePage() {
               {t(item.labelKey)}
             </Link>
           );
-          return item.labelKey === "settings" ? (
-            <RoleGate key={item.href} allow={["admin"]}>
+          return (item.labelKey === "settings" || item.labelKey === "auditLog" || item.labelKey === "reports") ? (
+            <RoleGate key={item.href} allow={item.labelKey === "reports" ? REPORTS_ROLES : ["admin"]}>
               {link}
             </RoleGate>
           ) : (

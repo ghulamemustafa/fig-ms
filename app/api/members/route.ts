@@ -19,15 +19,19 @@ export async function GET(request: Request) {
   const status = STATUSES.includes(statusParam as MemberStatus)
     ? (statusParam as MemberStatus)
     : undefined;
-  const search = searchParams.get("search") ?? undefined;
+  // ?q= is the global-search param; ?search= is kept for the Members list page.
+  const search = (searchParams.get("q") ?? searchParams.get("search") ?? "").trim() || undefined;
+  const limitParam = Number(searchParams.get("limit"));
+  const limit = Number.isInteger(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : undefined;
 
-  const members = await listMembers({ status, search });
+  const members = await listMembers({ status, search, limit });
   return NextResponse.json({ members });
 }
 
 export async function POST(request: Request) {
+  let actorId: string;
   try {
-    await requireRole(["admin", "data_entry"]);
+    actorId = (await requireRole(["admin", "data_entry"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -43,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const member = await createMember(parsed.data);
+    const member = await createMember(parsed.data, actorId);
     return NextResponse.json({ member }, { status: 201 });
   } catch (error) {
     if (error instanceof DuplicateFieldError) {

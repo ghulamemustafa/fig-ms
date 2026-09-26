@@ -17,8 +17,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  let actorId: string;
   try {
-    await requireRole(["admin"]);
+    actorId = (await requireRole(["admin"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -36,7 +37,7 @@ export async function PATCH(request: Request) {
   const { key, value, effectiveFrom } = parsed.data;
 
   try {
-    await insertSettingVersion(key, value, effectiveFrom ?? new Date());
+    await insertSettingVersion(key, value, effectiveFrom ?? new Date(), actorId);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to update setting" },

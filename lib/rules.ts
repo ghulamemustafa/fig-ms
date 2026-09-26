@@ -67,22 +67,43 @@ export async function expectedFee(
   member: MemberJoinInfo,
   monthCovered: Date
 ): Promise<number> {
+  const settings = await getFeeSettingsAsOf(monthCovered);
+  return feeFromSettings(member, monthCovered, settings);
+}
+
+export interface FeeSettings {
+  baseFee: number;
+  multiplier: number;
+  newMemberMonths: number;
+}
+
+/** Fee settings effective as of `asOf` — read once and reuse across many members (see feeFromSettings). */
+export async function getFeeSettingsAsOf(asOf: Date): Promise<FeeSettings> {
   const [baseFeeStr, multiplierStr, newMemberMonthsStr] = await Promise.all([
-    getSettingValueAsOf("baseFee", monthCovered),
-    getSettingValueAsOf("newMemberMultiplier", monthCovered),
-    getSettingValueAsOf("newMemberMonths", monthCovered),
+    getSettingValueAsOf("baseFee", asOf),
+    getSettingValueAsOf("newMemberMultiplier", asOf),
+    getSettingValueAsOf("newMemberMonths", asOf),
   ]);
 
   if (baseFeeStr == null || multiplierStr == null || newMemberMonthsStr == null) {
     throw new Error(
-      `Required fee settings are not configured as of ${monthCovered.toISOString()}`
+      `Required fee settings are not configured as of ${asOf.toISOString()}`
     );
   }
 
-  const baseFee = Number(baseFeeStr);
-  const multiplier = Number(multiplierStr);
-  const newMemberMonths = Number(newMemberMonthsStr);
+  return {
+    baseFee: Number(baseFeeStr),
+    multiplier: Number(multiplierStr),
+    newMemberMonths: Number(newMemberMonthsStr),
+  };
+}
 
+/** Pure fee calculation given already-resolved settings; expectedFee is this plus a settings lookup. */
+export function feeFromSettings(
+  member: MemberJoinInfo,
+  monthCovered: Date,
+  { baseFee, multiplier, newMemberMonths }: FeeSettings
+): number {
   const isGenuinelyNewJoin =
     member.originalJoinDate.getTime() === member.currentJoinDate.getTime();
 
@@ -108,6 +129,21 @@ export interface FundEligibilityDetail {
  * `asOf` defaults to the real current date for production use; tests pass a
  * fixed reference date so results don't drift as real time passes.
  */
+/** Pure eligibility check given an already-resolved eligibilityMonths — lets bulk callers read the setting once. */
+export function fundEligibilityFromMonths(
+  member: MemberEligibilityInfo,
+  eligibilityMonths: number,
+  asOf: Date
+): FundEligibilityDetail {
+  const monthsActive = monthsBetween(member.originalJoinDate, asOf);
+  const statusEligible = member.status === "active" || member.status === "deceased";
+  return {
+    eligible: statusEligible && monthsActive > eligibilityMonths,
+    monthsActive,
+    eligibilityMonths,
+  };
+}
+
 export async function getFundEligibilityDetail(
   member: MemberEligibilityInfo,
   asOf: Date = new Date()
@@ -120,14 +156,7 @@ export async function getFundEligibilityDetail(
   }
   const eligibilityMonths = Number(eligibilityMonthsStr);
 
-  const monthsActive = monthsBetween(member.originalJoinDate, asOf);
-  const statusEligible = member.status === "active" || member.status === "deceased";
-
-  return {
-    eligible: statusEligible && monthsActive > eligibilityMonths,
-    monthsActive,
-    eligibilityMonths,
-  };
+  return fundEligibilityFromMonths(member, eligibilityMonths, asOf);
 }
 
 /**

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { auditCreate, auditUpdate } from "@/lib/audit";
 import { getFundEligibilityDetail } from "@/lib/rules";
 import type { RequestPayoutInput } from "@/lib/schemas/payout";
 
@@ -41,6 +42,18 @@ export async function getPayoutById(id: string) {
   return prisma.fundPayout.findUnique({ where: { id }, include: PAYOUT_INCLUDE });
 }
 
+/** Strips the joined relation objects so audit entries hold only the payout row itself. */
+function payoutRow<T extends { member?: unknown; requestedBy?: unknown; vpDecisionBy?: unknown; presDecisionBy?: unknown }>(
+  p: T
+) {
+  const { member, requestedBy, vpDecisionBy, presDecisionBy, ...row } = p;
+  void member;
+  void requestedBy;
+  void vpDecisionBy;
+  void presDecisionBy;
+  return row;
+}
+
 /**
  * Blocks the request with a NOT_ELIGIBLE error (carrying monthsActive /
  * eligibilityMonths so the caller can explain why) unless the member passes
@@ -64,16 +77,63 @@ export async function requestPayout(
     );
   }
 
-  return prisma.fundPayout.create({
-    data: {
-      memberId: input.memberId,
-      payoutType: input.payoutType,
-      amount: input.amount,
-      reason: input.reason || null,
-      status: "requested",
-      requestedById,
-    },
-    include: PAYOUT_INCLUDE,
+  return prisma.$transaction(async (tx) => {
+    const payout = await tx.fundPayout.create({
+      data: {
+        memberId: input.memberId,
+        payoutType: input.payoutType,
+        amount: input.amount,
+        reason: input.reason || null,
+        status: "requested",
+        requestedById,
+      },
+      include: PAYOUT_INCLUDE,
+    });
+    await auditCreate(tx, {
+      entityType: "FundPayout",
+      record: payoutRow(payout),
+      changedBy: requestedById,
+      memberId: payout.memberId,
+    });
+    return payout;
+  });
+}
+
+type Decision = "approve" | "reject";
+
+/** Shared transition: guards the required current status, updates, and audits before/after + reason. */
+async function transition(params: {
+  id: string;
+  requiredStatus: string;
+  actionLabel: string;
+  actorId: string;
+  event: string;
+  data: Record<string, unknown>;
+  context?: Record<string, unknown>;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.fundPayout.findUnique({ where: { id: params.id } });
+    if (!before) throw new PayoutError("NOT_FOUND", "Payout not found");
+    if (before.status !== params.requiredStatus) {
+      throw new PayoutError(
+        "INVALID_STATE",
+        `Cannot ${params.actionLabel} a payout with status "${before.status}".`
+      );
+    }
+    const after = await tx.fundPayout.update({
+      where: { id: params.id },
+      data: params.data,
+      include: PAYOUT_INCLUDE,
+    });
+    await auditUpdate(tx, {
+      entityType: "FundPayout",
+      before,
+      after: payoutRow(after),
+      changedBy: params.actorId,
+      memberId: before.memberId,
+      extra: { event: params.event, ...params.context },
+    });
+    return after;
   });
 }
 
@@ -84,79 +144,65 @@ export async function requestPayout(
  */
 export async function vpDecision(
   id: string,
-  decision: "approve" | "reject",
+  decision: Decision,
   reason: string | undefined,
   actorId: string
 ) {
-  const payout = await prisma.fundPayout.findUnique({ where: { id } });
-  if (!payout) throw new PayoutError("NOT_FOUND", "Payout not found");
-  if (payout.status !== "requested") {
-    throw new PayoutError(
-      "INVALID_STATE",
-      `Cannot record a VP decision on a payout with status "${payout.status}".`
-    );
-  }
-
-  return prisma.fundPayout.update({
-    where: { id },
+  const now = new Date();
+  return transition({
+    id,
+    requiredStatus: "requested",
+    actionLabel: "record a VP decision on",
+    actorId,
+    event: decision === "approve" ? "vp_approved" : "vp_rejected",
+    context: { decision, reason: reason ?? null },
     data:
       decision === "approve"
-        ? { status: "vp_approved", vpDecisionById: actorId, vpDecisionAt: new Date() }
+        ? { status: "vp_approved", vpDecisionById: actorId, vpDecisionAt: now }
         : {
             status: "vp_rejected",
             vpDecisionById: actorId,
-            vpDecisionAt: new Date(),
+            vpDecisionAt: now,
             vpRejectReason: reason,
           },
-    include: PAYOUT_INCLUDE,
   });
 }
 
 /** Only valid from status "vp_approved" — this is what makes a VP rejection terminal. */
 export async function presidentDecision(
   id: string,
-  decision: "approve" | "reject",
+  decision: Decision,
   reason: string | undefined,
   actorId: string
 ) {
-  const payout = await prisma.fundPayout.findUnique({ where: { id } });
-  if (!payout) throw new PayoutError("NOT_FOUND", "Payout not found");
-  if (payout.status !== "vp_approved") {
-    throw new PayoutError(
-      "INVALID_STATE",
-      `Cannot record a President decision on a payout with status "${payout.status}".`
-    );
-  }
-
-  return prisma.fundPayout.update({
-    where: { id },
+  const now = new Date();
+  return transition({
+    id,
+    requiredStatus: "vp_approved",
+    actionLabel: "record a President decision on",
+    actorId,
+    event: decision === "approve" ? "president_approved" : "president_rejected",
+    context: { decision, reason: reason ?? null },
     data:
       decision === "approve"
-        ? { status: "president_approved", presDecisionById: actorId, presDecisionAt: new Date() }
+        ? { status: "president_approved", presDecisionById: actorId, presDecisionAt: now }
         : {
             status: "president_rejected",
             presDecisionById: actorId,
-            presDecisionAt: new Date(),
+            presDecisionAt: now,
             presRejectReason: reason,
           },
-    include: PAYOUT_INCLUDE,
   });
 }
 
 /** Only valid from status "president_approved". */
-export async function markPaid(id: string, paidDate: Date | undefined) {
-  const payout = await prisma.fundPayout.findUnique({ where: { id } });
-  if (!payout) throw new PayoutError("NOT_FOUND", "Payout not found");
-  if (payout.status !== "president_approved") {
-    throw new PayoutError(
-      "INVALID_STATE",
-      `Cannot mark a payout with status "${payout.status}" as paid.`
-    );
-  }
-
-  return prisma.fundPayout.update({
-    where: { id },
+export async function markPaid(id: string, paidDate: Date | undefined, actorId: string) {
+  return transition({
+    id,
+    requiredStatus: "president_approved",
+    actionLabel: "mark as paid",
+    actorId,
+    event: "paid",
     data: { status: "paid", paidDate: paidDate ?? new Date() },
-    include: PAYOUT_INCLUDE,
   });
 }

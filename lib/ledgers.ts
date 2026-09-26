@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { auditCreate, auditUpdate } from "@/lib/audit";
 import type {
   DonationEntryInput,
   ExpenseEntryInput,
@@ -34,16 +35,38 @@ export async function getIncomeTotal(filters: DateRangeFilter = {}): Promise<num
   return Number(result._sum.amount ?? 0);
 }
 
-export async function createIncome(input: IncomeEntryInput) {
-  return prisma.otherIncome.create({ data: input });
+export async function createIncome(input: IncomeEntryInput, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.otherIncome.create({ data: input });
+    await auditCreate(tx, { entityType: "OtherIncome", record, changedBy });
+    return record;
+  });
 }
 
-export async function updateIncome(id: string, input: IncomeEntryInput) {
-  return prisma.otherIncome.update({ where: { id }, data: input });
+export async function updateIncome(id: string, input: IncomeEntryInput, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.otherIncome.findUniqueOrThrow({ where: { id } });
+    const after = await tx.otherIncome.update({ where: { id }, data: input });
+    await auditUpdate(tx, { entityType: "OtherIncome", before, after, changedBy });
+    return after;
+  });
 }
 
-export async function softDeleteIncome(id: string) {
-  return prisma.otherIncome.update({ where: { id }, data: { deletedAt: new Date() } });
+/** Soft delete: the row stays (deletedAt set); the audit entry keeps a full snapshot. */
+export async function softDeleteIncome(id: string, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.otherIncome.findUniqueOrThrow({ where: { id } });
+    const after = await tx.otherIncome.update({ where: { id }, data: { deletedAt: new Date() } });
+    await auditUpdate(tx, {
+      entityType: "OtherIncome",
+      before,
+      after,
+      changedBy,
+      action: "delete",
+      extra: { event: "soft_deleted", snapshot: before },
+    });
+    return after;
+  });
 }
 
 // --- Donation ---
@@ -63,16 +86,38 @@ export async function getDonationTotal(filters: DateRangeFilter = {}): Promise<n
   return Number(result._sum.amount ?? 0);
 }
 
-export async function createDonation(input: DonationEntryInput) {
-  return prisma.donation.create({ data: input });
+export async function createDonation(input: DonationEntryInput, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.donation.create({ data: input });
+    await auditCreate(tx, { entityType: "Donation", record, changedBy });
+    return record;
+  });
 }
 
-export async function updateDonation(id: string, input: DonationEntryInput) {
-  return prisma.donation.update({ where: { id }, data: input });
+export async function updateDonation(id: string, input: DonationEntryInput, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.donation.findUniqueOrThrow({ where: { id } });
+    const after = await tx.donation.update({ where: { id }, data: input });
+    await auditUpdate(tx, { entityType: "Donation", before, after, changedBy });
+    return after;
+  });
 }
 
-export async function softDeleteDonation(id: string) {
-  return prisma.donation.update({ where: { id }, data: { deletedAt: new Date() } });
+/** Soft delete: the row stays (deletedAt set); the audit entry keeps a full snapshot. */
+export async function softDeleteDonation(id: string, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.donation.findUniqueOrThrow({ where: { id } });
+    const after = await tx.donation.update({ where: { id }, data: { deletedAt: new Date() } });
+    await auditUpdate(tx, {
+      entityType: "Donation",
+      before,
+      after,
+      changedBy,
+      action: "delete",
+      extra: { event: "soft_deleted", snapshot: before },
+    });
+    return after;
+  });
 }
 
 // --- Expense ---
@@ -112,14 +157,36 @@ export async function listExpenseCategories(): Promise<string[]> {
   return rows.map((r) => r.category);
 }
 
-export async function createExpense(input: ExpenseEntryInput) {
-  return prisma.expense.create({ data: input });
+export async function createExpense(input: ExpenseEntryInput, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.expense.create({ data: input });
+    await auditCreate(tx, { entityType: "Expense", record, changedBy });
+    return record;
+  });
 }
 
-export async function updateExpense(id: string, input: ExpenseEntryInput) {
-  return prisma.expense.update({ where: { id }, data: input });
+export async function updateExpense(id: string, input: ExpenseEntryInput, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.expense.findUniqueOrThrow({ where: { id } });
+    const after = await tx.expense.update({ where: { id }, data: input });
+    await auditUpdate(tx, { entityType: "Expense", before, after, changedBy });
+    return after;
+  });
 }
 
-export async function softDeleteExpense(id: string) {
-  return prisma.expense.update({ where: { id }, data: { deletedAt: new Date() } });
+/** Soft delete: the row stays (deletedAt set); the audit entry keeps a full snapshot. */
+export async function softDeleteExpense(id: string, changedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const before = await tx.expense.findUniqueOrThrow({ where: { id } });
+    const after = await tx.expense.update({ where: { id }, data: { deletedAt: new Date() } });
+    await auditUpdate(tx, {
+      entityType: "Expense",
+      before,
+      after,
+      changedBy,
+      action: "delete",
+      extra: { event: "soft_deleted", snapshot: before },
+    });
+    return after;
+  });
 }

@@ -43,6 +43,7 @@ async function cleanup() {
   });
   const ids = testMembers.map((m) => m.id);
   if (ids.length > 0) {
+    await prisma.auditLog.deleteMany({ where: { memberId: { in: ids } } });
     await prisma.fundPayout.deleteMany({ where: { memberId: { in: ids } } });
     await prisma.member.deleteMany({ where: { id: { in: ids } } });
   }
@@ -133,7 +134,7 @@ describe("full approve-through-paid flow", () => {
     expect(presApproved.status).toBe("president_approved");
     expect(presApproved.presDecisionById).toBe(president.id);
 
-    const paid = await markPaid(payout.id, utcDate(2026, 9, 26));
+    const paid = await markPaid(payout.id, utcDate(2026, 9, 26), treasurer.id);
     expect(paid.status).toBe("paid");
     expect(paid.paidDate).toEqual(utcDate(2026, 9, 26));
   });
@@ -158,7 +159,7 @@ describe("full approve-through-paid flow", () => {
     );
     await vpDecision(payout.id, "approve", undefined, vp.id);
 
-    await expect(markPaid(payout.id, undefined)).rejects.toMatchObject({
+    await expect(markPaid(payout.id, undefined, treasurer.id)).rejects.toMatchObject({
       code: "INVALID_STATE",
     });
   });

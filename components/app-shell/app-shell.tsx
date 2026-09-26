@@ -15,7 +15,7 @@ export function AppShell({
   return (
     <div className="flex min-h-full">
       <AppSidebar />
-      <div className="flex min-h-full flex-1 flex-col">
+      <div className="flex min-h-full min-w-0 flex-1 flex-col">
         <TopBar user={user} />
         <main className="flex-1 p-4 pb-20 md:pb-4">{children}</main>
         <BottomNav />

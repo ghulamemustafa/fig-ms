@@ -7,8 +7,9 @@ import { softDeleteIncome, updateIncome } from "@/lib/ledgers";
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  let actorId: string;
   try {
-    await requireRole(["treasurer", "data_entry", "admin"]);
+    actorId = (await requireRole(["treasurer", "data_entry", "admin"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -24,20 +25,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
-  const entry = await updateIncome(id, parsed.data);
+  const entry = await updateIncome(id, parsed.data, actorId);
   return NextResponse.json({ entry });
 }
 
 /** Soft delete only — admin only, per the "never hard-delete" principle. */
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  let actorId: string;
   try {
-    await requireRole(["admin"]);
+    actorId = (await requireRole(["admin"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
   }
 
   const { id } = await params;
-  await softDeleteIncome(id);
+  await softDeleteIncome(id, actorId);
   return NextResponse.json({ ok: true });
 }

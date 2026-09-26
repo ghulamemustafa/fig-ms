@@ -60,11 +60,12 @@ model Payment {
   wasDoubleFee Boolean  @default(false)
   paidDate     DateTime
   dueDate      DateTime // 15th of monthCovered
-  receiptNo    String   @unique
+  receiptNo    String // shared by every month paid in one transaction (one receipt per transaction)
   recordedById String
   recordedBy   User     @relation(fields: [recordedById], references: [id])
 
   @@unique([memberId, monthCovered])
+  @@index([receiptNo])
 }
 
 model OtherIncome {

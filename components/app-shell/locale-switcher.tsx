@@ -34,7 +34,7 @@ export function LocaleSwitcher() {
             aria-label={t("switchLabel")}
           >
             <Languages className="size-4" />
-            <span>{locale === "en" ? t("english") : t("urdu")}</span>
+            <span className="hidden sm:inline">{locale === "en" ? t("english") : t("urdu")}</span>
           </Button>
         }
       />

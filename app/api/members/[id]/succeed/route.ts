@@ -7,8 +7,9 @@ import { succeedMember } from "@/lib/members";
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: RouteParams) {
+  let actorId: string;
   try {
-    await requireRole(["admin", "data_entry"]);
+    actorId = (await requireRole(["admin", "data_entry"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;
@@ -25,7 +26,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   try {
-    const successor = await succeedMember(id, parsed.data);
+    const successor = await succeedMember(id, parsed.data, actorId);
     return NextResponse.json({ successor }, { status: 201 });
   } catch (error) {
     return NextResponse.json(

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations, useFormatter } from "next-intl";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, Download, FileText } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,7 @@ export function CollectPaymentForm() {
     const data = await res.json();
     setSuccess({
       count: data.payments.length,
-      receipts: data.payments.map((p: { receiptNo: string }) => p.receiptNo),
+      receipts: [...new Set<string>(data.payments.map((p: { receiptNo: string }) => p.receiptNo))],
     });
   }
 
@@ -139,7 +139,28 @@ export function CollectPaymentForm() {
             </AlertDescription>
           </Alert>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={reset}>{t("recordAnother")}</Button>
+            {success.receipts.map((no) => (
+              <div key={no} className="flex flex-wrap gap-2">
+                <Button
+                  render={
+                    <a href={`/api/receipts/${encodeURIComponent(no)}`} target="_blank" rel="noopener">
+                      <FileText className="size-4" />
+                      {t("viewReceipt")}
+                    </a>
+                  }
+                />
+                <Button
+                  variant="outline"
+                  render={
+                    <a href={`/api/receipts/${encodeURIComponent(no)}?download=1`} download>
+                      <Download className="size-4" />
+                      {t("downloadReceipt")}
+                    </a>
+                  }
+                />
+              </div>
+            ))}
+            <Button variant="outline" onClick={reset}>{t("recordAnother")}</Button>
             {member && (
               <Button
                 variant="outline"

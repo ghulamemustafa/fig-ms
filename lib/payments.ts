@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { auditUpdate, logAuditMany, type AuditEntry } from "@/lib/audit";
 import { consecutiveUnpaidMonths, expectedFee } from "@/lib/rules";
 import { getSettingValueAsOf } from "@/lib/settings";
 
@@ -193,6 +194,7 @@ export async function recordPayments(params: {
           "This member is removed — confirm reactivation to record arrears"
         );
       }
+      const beforeReactivation = member;
       member = await tx.member.update({
         where: { id: memberId },
         data: {
@@ -201,6 +203,14 @@ export async function recordPayments(params: {
           removedDate: null,
           removedReason: null,
         },
+      });
+      await auditUpdate(tx, {
+        entityType: "Member",
+        before: beforeReactivation,
+        after: member,
+        changedBy: recordedById,
+        memberId,
+        extra: { event: "reactivated", via: "payment" },
       });
     }
 
@@ -212,7 +222,14 @@ export async function recordPayments(params: {
       existing.map((p) => startOfMonthUTC(p.monthCovered).getTime())
     );
 
+    // One receipt number and one payment timestamp for the whole transaction: a
+    // multi-month payment is a single receipt with one line item per month.
+    // receiptNo is no longer unique per row, so serialize number allocation.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(7001)`;
+    const receiptNo = await nextReceiptNo(tx);
+    const paidDate = new Date();
     const created = [];
+    const auditEntries: AuditEntry[] = [];
     for (const monthCovered of months) {
       const normalizedMonth = startOfMonthUTC(monthCovered);
       if (alreadyPaid.has(normalizedMonth.getTime())) {
@@ -222,22 +239,32 @@ export async function recordPayments(params: {
         );
       }
       const { amount, wasDoubleFee } = await feeWithDoubleFlag(member, normalizedMonth);
-      const receiptNo = await nextReceiptNo(tx);
       const payment = await tx.payment.create({
         data: {
           memberId,
           monthCovered: normalizedMonth,
           amount,
           wasDoubleFee,
-          paidDate: new Date(),
+          paidDate,
           dueDate: dueDateForMonth(normalizedMonth),
           receiptNo,
           recordedById,
         },
       });
       created.push(payment);
+      auditEntries.push({
+        entityType: "Payment",
+        entityId: payment.id,
+        action: "create",
+        changedBy: recordedById,
+        changes: payment,
+        memberId,
+      });
       alreadyPaid.add(normalizedMonth.getTime());
     }
+
+    // One INSERT for all months — keeps the Collect Payment hot path to a single extra round trip.
+    await logAuditMany(tx, auditEntries);
 
     return { payments: created, member };
   });
