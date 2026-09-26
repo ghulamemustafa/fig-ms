@@ -19,6 +19,9 @@ function dueDateForMonth(monthCovered: Date): Date {
   );
 }
 
+/** How many months beyond the current one a member may pay ahead ("the whole year"). */
+export const MAX_ADVANCE_MONTHS = 12;
+
 export interface MemberForOutstanding {
   currentJoinDate: Date;
   originalJoinDate: Date;
@@ -80,12 +83,13 @@ export async function getOutstandingMonths(
   // before they existed. Only fall back to currentJoinDate when there's no
   // payment history at all (a brand-new registration, or the removed-member
   // arrears case, matching the spec's "since currentJoinDate or last payment").
-  const lastPaidMonth =
-    paidMonths.size > 0 ? new Date(Math.max(...paidMonths)) : null;
+  // Months paid in advance are ignored here: they must not hide unpaid months before them.
+  const currentMonth = startOfMonthUTC(asOf);
+  const pastPaid = [...paidMonths].filter((t) => t <= currentMonth.getTime());
+  const lastPaidMonth = pastPaid.length > 0 ? new Date(Math.max(...pastPaid)) : null;
   const startMonth = lastPaidMonth
     ? addMonthsUTC(lastPaidMonth, 1)
     : startOfMonthUTC(member.currentJoinDate);
-  const currentMonth = startOfMonthUTC(asOf);
   const isRemoved = member.status === "removed";
   const cap =
     isRemoved && member.removedDate
@@ -126,6 +130,36 @@ export async function getOutstandingMonths(
   );
 }
 
+/**
+ * The next `MAX_ADVANCE_MONTHS` months after the current one that are not yet
+ * paid, each with the fee that applies to that month (effective-dated settings
+ * as of that month). Fees are locked when the payment is recorded.
+ */
+export async function getUpcomingMonths(
+  member: { originalJoinDate: Date; currentJoinDate: Date; status: string },
+  payments: PaymentMonthInfo[],
+  asOf: Date = new Date()
+): Promise<OutstandingMonth[]> {
+  const paidMonths = new Set(payments.map((p) => startOfMonthUTC(p.monthCovered).getTime()));
+  const currentMonth = startOfMonthUTC(asOf);
+  const feeContextMember =
+    member.status === "removed"
+      ? { originalJoinDate: member.originalJoinDate, currentJoinDate: asOf }
+      : member;
+
+  const months: Date[] = [];
+  for (let i = 1; i <= MAX_ADVANCE_MONTHS; i++) {
+    const m = addMonthsUTC(currentMonth, i);
+    if (!paidMonths.has(m.getTime())) months.push(m);
+  }
+  return Promise.all(
+    months.map(async (monthCovered) => {
+      const { amount, wasDoubleFee } = await feeWithDoubleFlag(feeContextMember, monthCovered);
+      return { monthCovered, dueDate: dueDateForMonth(monthCovered), amount, wasDoubleFee };
+    })
+  );
+}
+
 /** Active members with 1+ consecutive unpaid months, worst-behind first. */
 export async function getDefaulters(asOf: Date = new Date()) {
   const members = await prisma.member.findMany({
@@ -152,7 +186,7 @@ async function nextReceiptNo(
 
 export class PaymentError extends Error {
   constructor(
-    public code: "MEMBER_NOT_FOUND" | "REACTIVATION_REQUIRED" | "ALREADY_PAID" | "MEMBER_DECEASED",
+    public code: "MEMBER_NOT_FOUND" | "REACTIVATION_REQUIRED" | "ALREADY_PAID" | "MEMBER_DECEASED" | "TOO_FAR_AHEAD",
     message: string
   ) {
     super(message);
@@ -178,6 +212,14 @@ export async function recordPayments(params: {
   const { memberId, months, recordedById, confirmReactivation } = params;
   if (months.length === 0) {
     throw new PaymentError("ALREADY_PAID", "No months selected");
+  }
+
+  const lastAllowed = addMonthsUTC(startOfMonthUTC(new Date()), MAX_ADVANCE_MONTHS);
+  if (months.some((m) => startOfMonthUTC(m).getTime() > lastAllowed.getTime())) {
+    throw new PaymentError(
+      "TOO_FAR_AHEAD",
+      `Payments can be made at most ${MAX_ADVANCE_MONTHS} months in advance`
+    );
   }
 
   return prisma.$transaction(async (tx) => {

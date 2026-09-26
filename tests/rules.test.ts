@@ -28,23 +28,15 @@ async function getMemberByCnic(cnic: string) {
   return member;
 }
 
-async function getPaymentsFor(memberId: string) {
-  return prisma.payment.findMany({ where: { memberId } });
-}
-
 let aliRaza: Awaited<ReturnType<typeof getMemberByCnic>>; // new member
 let yaqoob: Awaited<ReturnType<typeof getMemberByCnic>>; // long-standing, paid up
-let nasreen: Awaited<ReturnType<typeof getMemberByCnic>>; // 2 consecutive unpaid
-let karim: Awaited<ReturnType<typeof getMemberByCnic>>; // 3 consecutive unpaid
 let saleem: Awaited<ReturnType<typeof getMemberByCnic>>; // rejoined
 let bilal: Awaited<ReturnType<typeof getMemberByCnic>>; // succession successor
 
 beforeAll(async () => {
-  [aliRaza, yaqoob, nasreen, karim, saleem, bilal] = await Promise.all([
+  [aliRaza, yaqoob, saleem, bilal] = await Promise.all([
     getMemberByCnic("35201-1111111-1"),
     getMemberByCnic("35201-2222222-2"),
-    getMemberByCnic("35201-3333333-3"),
-    getMemberByCnic("35201-4444444-4"),
     getMemberByCnic("35201-5555555-5"),
     getMemberByCnic("35201-7777777-7"),
   ]);
@@ -127,18 +119,25 @@ describe("isFundEligible", () => {
 });
 
 describe("consecutiveUnpaidMonths", () => {
-  it("flags exactly 3 consecutive unpaid months", async () => {
-    const payments = await getPaymentsFor(karim.id);
-    expect(consecutiveUnpaidMonths(karim, payments, REF_NOW)).toBe(3);
+  // Pure function, so these use in-memory fixtures rather than seed members whose
+  // payments change as the app is used. REF_NOW is 2026-09-26 (Sep is past due).
+  const member = { currentJoinDate: utcDate(2020, 1, 1) };
+  const paid = (...months: [number, number][]) =>
+    months.map(([y, m]) => ({ monthCovered: utcDate(y, m, 1) }));
+
+  it("flags exactly 3 consecutive unpaid months", () => {
+    expect(consecutiveUnpaidMonths(member, paid([2026, 6]), REF_NOW)).toBe(3); // Jul, Aug, Sep
   });
 
-  it("counts 2 consecutive unpaid months for a member behind by less", async () => {
-    const payments = await getPaymentsFor(nasreen.id);
-    expect(consecutiveUnpaidMonths(nasreen, payments, REF_NOW)).toBe(2);
+  it("counts 2 consecutive unpaid months for a member behind by less", () => {
+    expect(consecutiveUnpaidMonths(member, paid([2026, 7]), REF_NOW)).toBe(2); // Aug, Sep
   });
 
-  it("returns 0 for a member fully paid up through the current month", async () => {
-    const payments = await getPaymentsFor(yaqoob.id);
-    expect(consecutiveUnpaidMonths(yaqoob, payments, REF_NOW)).toBe(0);
+  it("returns 0 for a member fully paid up through the current month", () => {
+    expect(consecutiveUnpaidMonths(member, paid([2026, 8], [2026, 9]), REF_NOW)).toBe(0);
+  });
+
+  it("ignores months paid in advance when counting what is unpaid now", () => {
+    expect(consecutiveUnpaidMonths(member, paid([2026, 7], [2026, 11], [2026, 12]), REF_NOW)).toBe(2);
   });
 });

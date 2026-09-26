@@ -223,6 +223,10 @@ function MemberDetailContent({
                       <TableCell className="tabular-nums">
                         {String(p.amount)}
                         {p.wasDoubleFee ? " (2x)" : ""}
+                        {p.monthCovered.getTime() >
+                        Date.UTC(p.paidDate.getUTCFullYear(), p.paidDate.getUTCMonth(), 1)
+                          ? ` (${t("advanceTag")})`
+                          : ""}
                       </TableCell>
                       <TableCell>{dateStr(p.paidDate)}</TableCell>
                       <TableCell className="tabular-nums">

@@ -43,6 +43,7 @@ const PAYMENT_ERROR_STATUS: Record<PaymentError["code"], number> = {
   REACTIVATION_REQUIRED: 409,
   ALREADY_PAID: 409,
   MEMBER_DECEASED: 400,
+  TOO_FAR_AHEAD: 400,
 };
 
 export async function POST(request: Request) {

@@ -38,6 +38,7 @@ export function CollectPaymentForm() {
 
   const [member, setMember] = useState<SelectedMember | null>(null);
   const [outstanding, setOutstanding] = useState<OutstandingMonth[]>([]);
+  const [upcoming, setUpcoming] = useState<OutstandingMonth[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [reactivate, setReactivate] = useState(false);
   const [loadingOutstanding, setLoadingOutstanding] = useState(false);
@@ -56,6 +57,7 @@ export function CollectPaymentForm() {
     const data = await res.json();
     setMember(data.member);
     setOutstanding(data.outstanding);
+    setUpcoming(data.upcoming ?? []);
     setSelected(new Set(data.outstanding.map((o: OutstandingMonth) => o.monthCovered)));
     setLoadingOutstanding(false);
   }
@@ -72,13 +74,25 @@ export function CollectPaymentForm() {
   function reset() {
     setMember(null);
     setOutstanding([]);
+    setUpcoming([]);
     setSelected(new Set());
     setReactivate(false);
     setError(null);
     setSuccess(null);
   }
 
-  const total = outstanding
+  // Advance months share the `selected` set with outstanding ones.
+  function selectAdvance(count: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      upcoming.forEach((u) => next.delete(u.monthCovered));
+      upcoming.slice(0, count).forEach((u) => next.add(u.monthCovered));
+      return next;
+    });
+  }
+
+  const advanceSelectedCount = upcoming.filter((u) => selected.has(u.monthCovered)).length;
+  const total = [...outstanding, ...upcoming]
     .filter((o) => selected.has(o.monthCovered))
     .reduce((sum, o) => sum + o.amount, 0);
 
@@ -112,6 +126,7 @@ export function CollectPaymentForm() {
       const map: Record<string, string> = {
         REACTIVATION_REQUIRED: t("errors.reactivationRequired"),
         ALREADY_PAID: t("errors.alreadyPaid"),
+        TOO_FAR_AHEAD: t("errors.tooFarAhead"),
         MEMBER_DECEASED: t("errors.deceased"),
       };
       setError((body?.error && map[body.error]) ?? t("errors.generic"));
@@ -123,6 +138,28 @@ export function CollectPaymentForm() {
       count: data.payments.length,
       receipts: [...new Set<string>(data.payments.map((p: { receiptNo: string }) => p.receiptNo))],
     });
+  }
+
+  function renderMonths(months: OutstandingMonth[]) {
+    return (
+      <div className="divide-y rounded-md border">
+        {months.map((o) => (
+          <label key={o.monthCovered} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+            <span className="flex items-center gap-2">
+              <Checkbox
+                checked={selected.has(o.monthCovered)}
+                onCheckedChange={(checked) => toggleMonth(o.monthCovered, checked === true)}
+              />
+              {format.dateTime(new Date(o.monthCovered), { month: "long", year: "numeric" })}
+            </span>
+            <span className="tabular-nums">
+              {o.amount}
+              {o.wasDoubleFee && <span className="ms-1 text-xs text-muted-foreground">({t("doubleFeeTag")})</span>}
+            </span>
+          </label>
+        ))}
+      </div>
+    );
   }
 
   if (success) {
@@ -231,51 +268,50 @@ export function CollectPaymentForm() {
               <CardDescription>{t("noOutstanding")}</CardDescription>
             )}
           </CardHeader>
-          {outstanding.length > 0 && (
-            <CardContent className="space-y-3">
-              <div className="divide-y rounded-md border">
-                {outstanding.map((o) => (
-                  <label
-                    key={o.monthCovered}
-                    className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Checkbox
-                        checked={selected.has(o.monthCovered)}
-                        onCheckedChange={(checked) =>
-                          toggleMonth(o.monthCovered, checked === true)
-                        }
-                      />
-                      {format.dateTime(new Date(o.monthCovered), {
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                    <span className="tabular-nums">
-                      {o.amount}
-                      {o.wasDoubleFee && (
-                        <span className="ms-1 text-xs text-muted-foreground">
-                          ({t("doubleFeeTag")})
-                        </span>
-                      )}
-                    </span>
-                  </label>
-                ))}
+          <CardContent className="space-y-4">
+            {outstanding.length > 0 && renderMonths(outstanding)}
+
+            {upcoming.length > 0 && (
+              <div className="space-y-2">
+                <div>
+                  <p className="text-sm font-medium">{t("advanceTitle")}</p>
+                  <p className="text-xs text-muted-foreground">{t("advanceHint")}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 3, 6, 12]
+                    .filter((n) => n <= upcoming.length)
+                    .map((n) => (
+                      <Button key={n} type="button" variant="outline" size="sm" onClick={() => selectAdvance(n)}>
+                        {t("advanceQuick", { count: n })}
+                      </Button>
+                    ))}
+                  {advanceSelectedCount > 0 && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => selectAdvance(0)}>
+                      {t("advanceClear")}
+                    </Button>
+                  )}
+                </div>
+                {renderMonths(upcoming)}
               </div>
-              <div className="flex items-center justify-between text-sm font-medium">
-                <span>{t("total")}</span>
-                <span className="tabular-nums">{total}</span>
-              </div>
-              <Button
-                className="w-full"
-                disabled={submitting || selected.size === 0}
-                onClick={submit}
-              >
-                {submitting && <Loader2 className="size-4 animate-spin" />}
-                {submitting ? t("submitting") : t("submit")}
-              </Button>
-            </CardContent>
-          )}
+            )}
+
+            {(outstanding.length > 0 || upcoming.length > 0) && (
+              <>
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <span>{t("total")}</span>
+                  <span className="tabular-nums">{total}</span>
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={submitting || selected.size === 0}
+                  onClick={submit}
+                >
+                  {submitting && <Loader2 className="size-4 animate-spin" />}
+                  {submitting ? t("submitting") : t("submit")}
+                </Button>
+              </>
+            )}
+          </CardContent>
         </Card>
       )}
     </div>

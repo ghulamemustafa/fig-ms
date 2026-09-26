@@ -7,7 +7,7 @@ export type ReceiptData = {
   paidDate: Date;
   member: { name: string; serialNo: string; cnic: string };
   recordedBy: string;
-  lines: { monthCovered: Date; amount: number; wasDoubleFee: boolean }[];
+  lines: { monthCovered: Date; amount: number; wasDoubleFee: boolean; advance: boolean }[];
   total: number;
 };
 
@@ -31,6 +31,8 @@ export async function getReceipt(receiptNo: string): Promise<ReceiptData | null>
     monthCovered: p.monthCovered,
     amount: Number(p.amount),
     wasDoubleFee: p.wasDoubleFee,
+    // Paid for a month after the month it was received in.
+    advance: p.monthCovered.getTime() > Date.UTC(p.paidDate.getUTCFullYear(), p.paidDate.getUTCMonth(), 1),
   }));
 
   return {

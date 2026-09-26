@@ -176,6 +176,7 @@
     }
   },
   "memberDetail": {
+    "advanceTag": "advance",
     "tabs": {
       "profile": "Profile",
       "dependents": "Dependents",
@@ -244,6 +245,12 @@
     "reactivateLabel": "Reactivate this member and record their arrears",
     "outstandingTitle": "Outstanding months",
     "noOutstanding": "This member has no outstanding months — fully paid up.",
+    "advanceTitle": "Pay in advance",
+    "advanceHint": "Optional. Fees are fixed at today's rate for each month once paid.",
+    "advanceQuick": "{count, plural, one {Next month} other {Next # months}}",
+    "advanceClear": "Clear",
+    "advanceTag": "advance",
+    "advanceSelected": "{count} advance month(s) selected",
     "month": "Month",
     "amount": "Amount",
     "doubleFeeTag": "2x",
@@ -257,6 +264,7 @@
       "alreadyPaid": "One of the selected months is already paid — refresh and try again.",
       "deceased": "Cannot record a payment for a deceased member.",
       "noneSelected": "Select at least one month.",
+      "tooFarAhead": "Payments can only be made up to 12 months in advance.",
       "generic": "Could not record this payment."
     },
     "viewReceipt": "View receipt",

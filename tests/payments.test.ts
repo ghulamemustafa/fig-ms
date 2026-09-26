@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { prisma } from "@/lib/prisma";
-import { getOutstandingMonths, recordPayments, PaymentError } from "@/lib/payments";
+import { getOutstandingMonths, getUpcomingMonths, recordPayments, PaymentError } from "@/lib/payments";
 
 /**
  * These create their own throwaway Member fixtures (unlike tests/rules.test.ts,
@@ -212,5 +212,59 @@ describe("recordPayments", () => {
         recordedById: recorder.id,
       })
     ).rejects.toThrow(PaymentError);
+  });
+});
+
+describe("advance payments", () => {
+  it("lists the next 12 unpaid months and skips ones already paid ahead", async () => {
+    const member = await makeTestMember({
+      suffix: "adv1",
+      originalJoinDate: utcDate(2020, 1, 1),
+      currentJoinDate: utcDate(2020, 1, 1),
+    });
+    const upcoming = await getUpcomingMonths(member, [{ monthCovered: utcDate(2026, 10, 1) }], REF_NOW);
+    expect(upcoming).toHaveLength(11);
+    expect(upcoming[0].monthCovered.toISOString().slice(0, 7)).toBe("2026-11");
+    expect(upcoming.at(-1)!.monthCovered.toISOString().slice(0, 7)).toBe("2027-09");
+  });
+
+  it("records months ahead under one receipt, and they do not hide earlier unpaid months", async () => {
+    const member = await makeTestMember({
+      suffix: "adv2",
+      originalJoinDate: utcDate(2025, 1, 1),
+      currentJoinDate: utcDate(2025, 1, 1),
+    });
+    const now = new Date();
+    const month = (offset: number) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
+    // Pay 3 months ahead, but not this month or earlier.
+    const { payments } = await recordPayments({
+      memberId: member.id,
+      months: [month(1), month(2), month(3)],
+      recordedById: recorder.id,
+    });
+    expect(new Set(payments.map((p) => p.receiptNo)).size).toBe(1);
+
+    const all = await prisma.payment.findMany({ where: { memberId: member.id } });
+    const outstanding = await getOutstandingMonths(member, all);
+    // This month is still owed even though later months are paid.
+    expect(outstanding.some((o) => o.monthCovered.getTime() === month(0).getTime())).toBe(true);
+    expect(outstanding.every((o) => o.monthCovered.getTime() <= month(0).getTime())).toBe(true);
+  });
+
+  it("rejects payments more than 12 months ahead", async () => {
+    const member = await makeTestMember({
+      suffix: "adv3",
+      originalJoinDate: utcDate(2025, 1, 1),
+      currentJoinDate: utcDate(2025, 1, 1),
+    });
+    const now = new Date();
+    const tooFar = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 13, 1));
+    await expect(
+      recordPayments({ memberId: member.id, months: [tooFar], recordedById: recorder.id })
+    ).rejects.toMatchObject({ code: "TOO_FAR_AHEAD" });
+    const ok = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 12, 1));
+    await expect(
+      recordPayments({ memberId: member.id, months: [ok], recordedById: recorder.id })
+    ).resolves.toBeTruthy();
   });
 });

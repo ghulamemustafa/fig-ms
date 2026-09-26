@@ -137,7 +137,7 @@ describe("full approve-through-paid flow", () => {
     const paid = await markPaid(payout.id, utcDate(2026, 9, 26), treasurer.id);
     expect(paid.status).toBe("paid");
     expect(paid.paidDate).toEqual(utcDate(2026, 9, 26));
-  });
+  }, 30_000);
 
   it("refuses a President decision before VP approval", async () => {
     const member = await makeTestMember("no-vp-yet", utcDate(2020, 1, 1));

@@ -65,7 +65,7 @@ function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
         {receipt.lines.map((line) => (
           <View key={line.monthCovered.toISOString()} style={s.tableRow} wrap={false}>
             <Text style={s.colMonth}>{fmtMonth(line.monthCovered)}</Text>
-            <Text style={s.colNote}>{line.wasDoubleFee ? "New-member fee (2x)" : ""}</Text>
+            <Text style={s.colNote}>{[line.advance ? "Advance payment" : "", line.wasDoubleFee ? "New-member fee (2x)" : ""].filter(Boolean).join(" · ")}</Text>
             <Text style={s.colAmount}>{fmtNum(line.amount)}</Text>
           </View>
         ))}

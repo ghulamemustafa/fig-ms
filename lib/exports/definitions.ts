@@ -105,6 +105,11 @@ export const paymentsExport: ExportDef<PaymentRow> = {
     { header: "Month Covered", value: (r) => isoMonth(r.monthCovered), flex: 1.7 },
     { header: "Amount", value: (r) => r.amount, flex: 1, align: "right", sum: true },
     { header: "Double Fee", value: (r) => yesNo(r.wasDoubleFee), flex: 1.2 },
+    {
+      header: "Advance",
+      value: (r) => yesNo(r.monthCovered.getTime() > Date.UTC(r.paidDate.getUTCFullYear(), r.paidDate.getUTCMonth(), 1)),
+      flex: 1,
+    },
     { header: "Recorded By", value: (r) => r.recordedBy.name, flex: 1.8 },
   ],
   async *rows(f) {
