@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -51,12 +52,14 @@ export function UserMenu({
         }
       />
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="flex flex-col">
-          <span className="font-medium">{name}</span>
-          <span className="text-xs text-muted-foreground">
-            {tRoles(role)}
-          </span>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col">
+            <span className="font-medium">{name}</span>
+            <span className="text-xs text-muted-foreground">
+              {tRoles(role)}
+            </span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => signOut({ redirectTo: `/${locale}/login` })}

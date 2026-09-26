@@ -27,6 +27,7 @@ export function LoginForm() {
       z.object({
         email: z.string().email(t("errors.invalidEmail")),
         password: z.string().min(1, t("errors.required")),
+        remember: z.boolean(),
       }),
     [t]
   );
@@ -38,7 +39,7 @@ export function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "", password: "", remember: true },
   });
 
   async function onSubmit(values: FormValues) {
@@ -46,6 +47,7 @@ export function LoginForm() {
     const result = await signIn("credentials", {
       email: values.email,
       password: values.password,
+      remember: String(values.remember),
       redirect: false,
     });
 
@@ -98,6 +100,16 @@ export function LoginForm() {
           </p>
         )}
       </div>
+
+      <label htmlFor="remember" className="flex items-center gap-2 text-sm">
+        <input
+          id="remember"
+          type="checkbox"
+          className="size-4 rounded border-input accent-primary"
+          {...register("remember")}
+        />
+        {t("rememberMe")}
+      </label>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting && <Loader2 className="size-4 animate-spin" />}

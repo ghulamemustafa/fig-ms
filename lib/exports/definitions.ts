@@ -140,6 +140,7 @@ type PayoutRow = {
   presDecisionAt: Date | null;
   presRejectReason: string | null;
   paidDate: Date | null;
+  createdAt: Date;
 };
 
 export const payoutsExport: ExportDef<PayoutRow> = {
@@ -152,6 +153,7 @@ export const payoutsExport: ExportDef<PayoutRow> = {
     { header: "Type", value: (r) => cap(r.payoutType), flex: 1 },
     { header: "Amount", value: (r) => r.amount, flex: 1, align: "right", sum: true },
     { header: "Status", value: (r) => PAYOUT_STATUS_LABELS[r.status] ?? r.status, flex: 1.5 },
+    { header: "Requested", value: (r) => isoDate(r.createdAt), flex: 1.1 },
     { header: "Requested By", value: (r) => r.requestedBy.name, flex: 1.5 },
     { header: "VP Decision", value: (r) => (r.vpDecisionBy ? `${r.vpDecisionBy.name} ${isoDate(r.vpDecisionAt)}` : ""), flex: 2 },
     { header: "President Decision", value: (r) => (r.presDecisionBy ? `${r.presDecisionBy.name} ${isoDate(r.presDecisionAt)}` : ""), flex: 2 },
@@ -160,14 +162,13 @@ export const payoutsExport: ExportDef<PayoutRow> = {
     { header: "Request Reason", value: (r) => r.reason ?? "", flex: 2.2 },
   ],
   async *rows(f) {
-    // FundPayout has no requested-at timestamp, so a date range matches on any
-    // recorded decision or payment date. Undecided requests only appear without a range.
+    // The date range applies to when the payout was requested.
     const range = dateRangeWhere(f);
     const where = {
       ...(f.status ? { status: f.status } : {}),
       ...(f.type ? { payoutType: f.type } : {}),
       ...(f.memberId ? { memberId: f.memberId } : {}),
-      ...(range ? { OR: [{ vpDecisionAt: range }, { presDecisionAt: range }, { paidDate: range }] } : {}),
+      ...(range ? { createdAt: range } : {}),
     };
     for await (const p of paged((cursor, take) =>
       prisma.fundPayout.findMany({

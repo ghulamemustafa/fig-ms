@@ -123,6 +123,7 @@ model FundPayout {
   presDecisionAt   DateTime?
   presRejectReason String?
   paidDate         DateTime?
+  createdAt        DateTime  @default(now())
 }
 
 model Setting {

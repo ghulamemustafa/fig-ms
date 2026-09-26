@@ -9,12 +9,16 @@ import type { Role } from "@/lib/rbac";
  * config used everywhere else, which adds the Credentials provider's
  * `authorize()` — the only place that talks to Postgres + bcrypt).
  */
+const SHORT_SESSION_MS = 12 * 60 * 60 * 1000;
+
 export const authConfig = {
   pages: {
     signIn: "/login",
   },
   session: {
     strategy: "jwt",
+    // "Remember me" sessions last 30 days (sliding); others end after 12 hours.
+    maxAge: 30 * 24 * 60 * 60,
   },
   providers: [],
   callbacks: {
@@ -22,6 +26,13 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.remember = user.remember;
+        token.loginAt = Date.now();
+      }
+      // Without "remember me" the sign-in is short-lived; returning null ends the session.
+      // Tokens issued before "remember me" existed have no loginAt and are left alone.
+      if (!token.remember && token.loginAt && Date.now() - token.loginAt > SHORT_SESSION_MS) {
+        return null;
       }
       return token;
     },

@@ -4,6 +4,7 @@ import type { Role } from "@/lib/rbac";
 declare module "next-auth" {
   interface User {
     role: Role;
+    remember?: boolean;
   }
 
   interface Session {
@@ -18,5 +19,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: Role;
+    remember?: boolean;
+    loginAt?: number;
   }
 }

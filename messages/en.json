@@ -34,6 +34,7 @@
     "password": "Password",
     "signIn": "Sign in",
     "signingIn": "Signing in...",
+    "rememberMe": "Remember me for 30 days",
     "signOut": "Log out",
     "invalidCredentials": "Incorrect email or password.",
     "genericError": "Something went wrong. Please try again.",
@@ -493,7 +494,7 @@
     "hints": {
       "members": "Date range filters by join date.",
       "payments": "Date range filters by payment date.",
-      "payouts": "Date range matches any decision or paid date.",
+      "payouts": "Date range applies to the request date.",
       "income": "Date range filters by entry date.",
       "donations": "Date range filters by entry date.",
       "expenses": "Date range filters by entry date.",

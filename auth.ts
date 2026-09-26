@@ -22,7 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (credentials) => {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
-        const { email, password } = parsed.data;
+        const { email, password, remember } = parsed.data;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
@@ -36,6 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role,
+          remember: remember === "true",
         };
       },
     }),
