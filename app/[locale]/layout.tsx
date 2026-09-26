@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { routing, localeDirections, type Locale } from "@/i18n/routing";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Watermark } from "@/components/app-shell/watermark";
 import { SessionProvider } from "@/components/providers/session-provider";
 import "../globals.css";
 
@@ -55,6 +56,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider>
           <SessionProvider>
             <TooltipProvider>{children}</TooltipProvider>
+            <Watermark />
           </SessionProvider>
         </NextIntlClientProvider>
       </body>
