@@ -26,7 +26,7 @@ export default async function MembersPage({
     getSession(),
   ]);
 
-  const canCreate = hasRole(session?.user?.role, ["admin", "data_entry"]);
+  const canCreate = hasRole(session?.user?.role, ["admin", "data_entry", "treasurer"]);
 
   return (
     <MembersPageContent

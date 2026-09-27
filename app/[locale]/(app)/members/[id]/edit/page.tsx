@@ -16,7 +16,7 @@ export default async function EditMemberPage({
   params: Promise<{ id: string }>;
 }) {
   try {
-    await requireRole(["admin", "data_entry"]);
+    await requireRole(["admin", "data_entry", "treasurer"]);
   } catch (error) {
     if (error instanceof AuthError) return <NotAuthorized />;
     throw error;

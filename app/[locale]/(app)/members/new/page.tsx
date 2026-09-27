@@ -6,7 +6,7 @@ import { BackLink } from "@/components/app-shell/back-link";
 
 export default async function NewMemberPage() {
   try {
-    await requireRole(["admin", "data_entry"]);
+    await requireRole(["admin", "data_entry", "treasurer"]);
   } catch (error) {
     if (error instanceof AuthError) return <NotAuthorized />;
     throw error;

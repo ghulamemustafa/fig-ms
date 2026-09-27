@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   let actorId: string;
   try {
-    actorId = (await requireRole(["admin", "data_entry"])).user.id;
+    actorId = (await requireRole(["admin", "data_entry", "treasurer"])).user.id;
   } catch (error) {
     if (error instanceof AuthError) return authErrorResponse(error);
     throw error;

@@ -37,8 +37,8 @@ export default async function MemberDetailPage({
   if (!member) notFound();
 
   const role = session?.user?.role;
-  const canEdit = hasRole(role, ["admin", "data_entry"]);
-  const canSucceed = hasRole(role, ["admin", "data_entry"]) && member.status !== "removed";
+  const canEdit = hasRole(role, ["admin", "data_entry", "treasurer"]);
+  const canSucceed = hasRole(role, ["admin", "data_entry", "treasurer"]) && member.status !== "removed";
   const canRemove = hasRole(role, ["admin"]) && member.status === "active";
 
   return (
