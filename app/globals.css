@@ -147,6 +147,10 @@ html[lang="ur"] {
   h1, h2, h3 {
     font-family: var(--font-heading);
     letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
   /* Nastaliq glyphs are tall with deep descenders; give lines extra room so they never clip. */
   html[lang="ur"] body {

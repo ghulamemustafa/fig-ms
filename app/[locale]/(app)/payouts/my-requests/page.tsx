@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import { requireRole, AuthError } from "@/lib/auth-guards";
 import { listPayouts } from "@/lib/payouts";
 import { MyRequestsList, type MyRequestPayout } from "@/components/payouts/my-requests-list";
+import { BackLink } from "@/components/app-shell/back-link";
 
 export default async function MyRequestsPage() {
   let userId: string;
@@ -40,6 +41,7 @@ function MyRequestsContent({ payouts }: { payouts: MyRequestPayout[] }) {
 
   return (
     <div className="space-y-4">
+      <BackLink href="/payouts" />
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <MyRequestsList payouts={payouts} />
     </div>

@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { requireRole, AuthError } from "@/lib/auth-guards";
 import { getMemberById } from "@/lib/members";
 import { MemberForm, type MemberFormDefaults } from "@/components/members/member-form";
+import { BackLink } from "@/components/app-shell/back-link";
 
 function toDateInput(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -62,6 +63,7 @@ function EditMemberContent({
 
   return (
     <div className="space-y-4">
+      <BackLink href={`/members/${id}`} />
       <h1 className="text-2xl font-semibold tracking-tight">{t("editTitle")}</h1>
       <MemberForm mode="edit" memberId={id} defaultValues={defaultValues} />
     </div>

@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 
 import { requireRole, AuthError } from "@/lib/auth-guards";
 import { MemberForm } from "@/components/members/member-form";
+import { BackLink } from "@/components/app-shell/back-link";
 
 export default async function NewMemberPage() {
   try {
@@ -19,6 +20,7 @@ function NewMemberContent() {
 
   return (
     <div className="space-y-4">
+      <BackLink href="/members" />
       <h1 className="text-2xl font-semibold tracking-tight">{t("newTitle")}</h1>
       <MemberForm mode="create" />
     </div>

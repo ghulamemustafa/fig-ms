@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import { requireRole, AuthError } from "@/lib/auth-guards";
 import { listPayouts } from "@/lib/payouts";
 import { PayoutQueueList, type QueuePayout } from "@/components/payouts/payout-queue-list";
+import { BackLink } from "@/components/app-shell/back-link";
 
 export default async function VpQueuePage() {
   try {
@@ -37,6 +38,7 @@ function VpQueueContent({ payouts }: { payouts: QueuePayout[] }) {
 
   return (
     <div className="space-y-4">
+      <BackLink href="/payouts" />
       <h1 className="text-2xl font-semibold tracking-tight">{t("vpQueueTitle")}</h1>
       <PayoutQueueList
         payouts={payouts}

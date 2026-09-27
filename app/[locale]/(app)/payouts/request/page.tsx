@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 
 import { requireRole, AuthError } from "@/lib/auth-guards";
 import { PayoutRequestForm } from "@/components/payouts/payout-request-form";
+import { BackLink } from "@/components/app-shell/back-link";
 
 export default async function RequestPayoutPage() {
   try {
@@ -19,6 +20,7 @@ function RequestPayoutContent() {
 
   return (
     <div className="space-y-4">
+      <BackLink href="/payouts" />
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <PayoutRequestForm />
     </div>

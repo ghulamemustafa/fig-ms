@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 
 import { requireRole, AuthError } from "@/lib/auth-guards";
 import { CollectPaymentForm } from "@/components/payments/collect-payment-form";
+import { BackLink } from "@/components/app-shell/back-link";
 
 export default async function CollectPaymentPage() {
   try {
@@ -19,6 +20,7 @@ function CollectPaymentContent() {
 
   return (
     <div className="space-y-4">
+      <BackLink href="/payments" />
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
       <CollectPaymentForm />
     </div>

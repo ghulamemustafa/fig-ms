@@ -81,8 +81,8 @@ export function MemberList({ members }: { members: MemberListRow[] }) {
                     {member.name}
                   </Link>
                 </TableCell>
-                <TableCell className="tabular-nums">{member.cnic}</TableCell>
-                <TableCell className="tabular-nums">{member.mobile}</TableCell>
+                <TableCell className="font-mono text-sm tabular-nums">{member.cnic}</TableCell>
+                <TableCell className="font-mono text-sm tabular-nums">{member.mobile}</TableCell>
                 <TableCell>
                   <StatusBadge status={member.status} />
                 </TableCell>
@@ -101,7 +101,7 @@ export function MemberList({ members }: { members: MemberListRow[] }) {
           <Link
             key={member.id}
             href={`/members/${member.id}`}
-            className="rounded-2xl border bg-card p-4 shadow-(--shadow-soft)"
+            className="rounded-2xl border bg-card p-4 shadow-(--shadow-soft) transition-all duration-150 active:scale-[0.98] active:shadow-none"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
