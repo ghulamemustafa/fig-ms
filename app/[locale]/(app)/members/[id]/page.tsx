@@ -277,7 +277,9 @@ function MemberDetailContent({
                                 : "secondary"
                           }
                         >
-                          {tStatus(
+                          {p.autoApproved && p.status === "president_approved"
+                            ? tStatus("autoApproved")
+                            : tStatus(
                             p.status as
                               | "requested"
                               | "vp_approved"

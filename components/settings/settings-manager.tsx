@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import type { SettingKey } from "@/lib/settings";
+import { BOOLEAN_SETTING_KEYS } from "@/lib/setting-types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -30,6 +31,11 @@ export function SettingsManager({
   const [settings, setSettings] = useState(initialSettings);
   const t = useTranslations("settingsPage");
   const format = useFormatter();
+  // "true"/"false" rows read as words, numbers stay as figures.
+  const display = (key: SettingKey, value: string | undefined) => {
+    if (value === undefined) return "—";
+    return BOOLEAN_SETTING_KEYS.has(key) ? t(`booleanValues.${value === "true" ? "on" : "off"}`) : value;
+  };
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -45,8 +51,14 @@ export function SettingsManager({
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-2xl font-semibold tabular-nums">
-                {setting.current?.value ?? "—"}
+              <p
+                className={
+                  BOOLEAN_SETTING_KEYS.has(setting.key)
+                    ? "text-2xl font-semibold"
+                    : "text-2xl font-semibold tabular-nums"
+                }
+              >
+                {display(setting.key, setting.current?.value)}
               </p>
               {setting.current && (
                 <p className="text-xs text-muted-foreground">
@@ -81,7 +93,7 @@ export function SettingsManager({
                     {setting.history.map((row) => (
                       <TableRow key={row.effectiveFrom}>
                         <TableCell className="tabular-nums">
-                          {row.value}
+                          {display(setting.key, row.value)}
                         </TableCell>
                         <TableCell>
                           {format.dateTime(new Date(row.effectiveFrom), {

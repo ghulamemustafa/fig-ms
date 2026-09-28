@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+export { BOOLEAN_SETTING_KEYS } from "@/lib/setting-types";
 
 export const SETTING_KEYS = [
   "baseFee",
@@ -9,9 +10,20 @@ export const SETTING_KEYS = [
   "newMemberMonths",
   "eligibilityMonths",
   "removalMonths",
+  "requirePayoutApproval",
 ] as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[number];
+
+
+/**
+ * Whether new payout requests must go through the VP then President chain as of
+ * `asOf`. Defaults to true when never configured — the safe, original behaviour.
+ */
+export async function isPayoutApprovalRequired(asOf: Date = new Date()): Promise<boolean> {
+  const value = await getSettingValueAsOf("requirePayoutApproval", asOf);
+  return value !== "false";
+}
 
 export type SettingRow = {
   id: string;

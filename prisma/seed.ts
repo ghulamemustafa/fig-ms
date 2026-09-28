@@ -34,6 +34,7 @@ async function main() {
     { key: "newMemberMonths", value: "3" },
     { key: "eligibilityMonths", value: "3" },
     { key: "removalMonths", value: "3" },
+    { key: "requirePayoutApproval", value: "true" },
   ];
   for (const s of settingDefs) {
     await prisma.setting.upsert({

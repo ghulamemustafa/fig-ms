@@ -1,18 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { Pencil, Loader2 } from "lucide-react";
 
 import type { SettingKey } from "@/lib/settings";
+import { BOOLEAN_SETTING_KEYS } from "@/lib/setting-types";
 import type { SerializedSetting } from "@/components/settings/settings-manager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -46,8 +54,10 @@ export function SettingEditDialog({
   const [open, setOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const isBoolean = BOOLEAN_SETTING_KEYS.has(settingKey);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -125,11 +135,29 @@ export function SettingEditDialog({
 
             <div className="space-y-2">
               <Label htmlFor={`${settingKey}-value`}>{t("newValue")}</Label>
-              <Input
-                id={`${settingKey}-value`}
-                inputMode="decimal"
-                {...register("value")}
-              />
+              {isBoolean ? (
+                <Controller
+                  control={control}
+                  name="value"
+                  render={({ field }) => (
+                    <Select value={field.value || "true"} onValueChange={(v) => v && field.onChange(v)}>
+                      <SelectTrigger id={`${settingKey}-value`} className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">{t("booleanValues.on")}</SelectItem>
+                        <SelectItem value="false">{t("booleanValues.off")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              ) : (
+                <Input
+                  id={`${settingKey}-value`}
+                  inputMode="decimal"
+                  {...register("value")}
+                />
+              )}
               {errors.value && (
                 <p className="text-sm text-destructive">
                   {errors.value.message}

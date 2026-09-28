@@ -124,6 +124,9 @@ model FundPayout {
   presRejectReason String?
   paidDate         DateTime?
   createdAt        DateTime  @default(now())
+  // True when this payout skipped the VP/President chain because the
+  // requirePayoutApproval setting was off at request time (see lib/settings.ts).
+  autoApproved     Boolean   @default(false)
 }
 
 model Setting {

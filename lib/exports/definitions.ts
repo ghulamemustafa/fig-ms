@@ -146,6 +146,7 @@ type PayoutRow = {
   presRejectReason: string | null;
   paidDate: Date | null;
   createdAt: Date;
+  autoApproved: boolean;
 };
 
 export const payoutsExport: ExportDef<PayoutRow> = {
@@ -160,8 +161,8 @@ export const payoutsExport: ExportDef<PayoutRow> = {
     { header: "Status", value: (r) => PAYOUT_STATUS_LABELS[r.status] ?? r.status, flex: 1.5 },
     { header: "Requested", value: (r) => isoDate(r.createdAt), flex: 1.1 },
     { header: "Requested By", value: (r) => r.requestedBy.name, flex: 1.5 },
-    { header: "VP Decision", value: (r) => (r.vpDecisionBy ? `${r.vpDecisionBy.name} ${isoDate(r.vpDecisionAt)}` : ""), flex: 2 },
-    { header: "President Decision", value: (r) => (r.presDecisionBy ? `${r.presDecisionBy.name} ${isoDate(r.presDecisionAt)}` : ""), flex: 2 },
+    { header: "VP Decision", value: (r) => (r.vpDecisionBy ? `${r.vpDecisionBy.name} ${isoDate(r.vpDecisionAt)}` : r.autoApproved ? "Not required" : ""), flex: 2 },
+    { header: "President Decision", value: (r) => (r.presDecisionBy ? `${r.presDecisionBy.name} ${isoDate(r.presDecisionAt)}` : r.autoApproved ? "Not required" : ""), flex: 2 },
     { header: "Paid Date", value: (r) => isoDate(r.paidDate), flex: 1.1 },
     { header: "Rejection Reason", value: (r) => r.vpRejectReason ?? r.presRejectReason ?? "", flex: 2.2 },
     { header: "Request Reason", value: (r) => r.reason ?? "", flex: 2.2 },

@@ -95,7 +95,15 @@
       "removalMonths": {
         "label": "Removal threshold (months)",
         "description": "Consecutive unpaid months before a member is flagged for removal review."
+      },
+      "requirePayoutApproval": {
+        "label": "Payout approval",
+        "description": "When required, new payout requests go to the VP, then the President, before they can be paid. When not required, new requests can be paid straight away. Requests already in progress are not affected."
       }
+    },
+    "booleanValues": {
+      "on": "Required",
+      "off": "Not required"
     }
   },
   "membersPage": {
@@ -308,7 +316,8 @@
     "vp_rejected": "VP Rejected",
     "president_approved": "President Approved",
     "president_rejected": "President Rejected",
-    "paid": "Paid"
+    "paid": "Paid",
+    "autoApproved": "Approved (approval not required)"
   },
   "payoutType": {
     "funeral": "Funeral",
@@ -325,6 +334,8 @@
     "submit": "Submit request",
     "submitting": "Submitting...",
     "success": "Payout request submitted.",
+    "goToMyRequests": "Go to My Requests",
+    "successAutoApproved": "Payout request recorded. Approval is not required right now, so it is ready to be marked as paid from My Requests.",
     "requestAnother": "Request another payout",
     "notEligibleTitle": "Not fund-eligible",
     "notEligibleBody": "This member has been active for {monthsActive} month(s); fund payouts require more than {eligibilityMonths}.",

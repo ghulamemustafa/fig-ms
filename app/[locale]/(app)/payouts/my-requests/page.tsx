@@ -28,6 +28,7 @@ function serialize(
     payoutType: p.payoutType,
     amount: String(p.amount),
     status: p.status,
+    autoApproved: p.autoApproved,
     reason: p.reason,
     vpRejectReason: p.vpRejectReason,
     presRejectReason: p.presRejectReason,

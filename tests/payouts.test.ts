@@ -177,3 +177,71 @@ describe("PayoutError", () => {
     ).rejects.toBeInstanceOf(PayoutError);
   });
 });
+
+describe("payout approval setting", () => {
+  const KEY = "requirePayoutApproval";
+  let overrideId: string | null = null;
+
+  async function setApprovalRequired(value: "true" | "false") {
+    // A row effective before REF_NOW so it wins over the seeded baseline as of REF_NOW.
+    const row = await prisma.setting.create({
+      data: { key: KEY, value, effectiveFrom: utcDate(2026, 9, 1) },
+    });
+    overrideId = row.id;
+  }
+
+  afterAll(async () => {
+    if (overrideId) await prisma.setting.deleteMany({ where: { id: overrideId } });
+  });
+
+  it("with approval required (the default), a new request waits for the VP", async () => {
+    const member = await makeTestMember("appr-on", utcDate(2020, 1, 1));
+    const payout = await requestPayout(
+      { memberId: member.id, payoutType: "other", amount: 1000 },
+      treasurer.id,
+      REF_NOW
+    );
+    expect(payout.status).toBe("requested");
+    expect(payout.autoApproved).toBe(false);
+  });
+
+  it("with approval not required, a request is ready to pay with no decisions recorded", async () => {
+    await setApprovalRequired("false");
+    const member = await makeTestMember("appr-off", utcDate(2020, 1, 1));
+    const payout = await requestPayout(
+      { memberId: member.id, payoutType: "other", amount: 1000 },
+      treasurer.id,
+      REF_NOW
+    );
+    expect(payout.status).toBe("president_approved");
+    expect(payout.autoApproved).toBe(true);
+    expect(payout.vpDecisionById).toBeNull();
+    expect(payout.presDecisionById).toBeNull();
+
+    // No approver acts on it, and it can be paid straight away.
+    await expect(vpDecision(payout.id, "approve", undefined, vp.id)).rejects.toMatchObject({
+      code: "INVALID_STATE",
+    });
+    const paid = await markPaid(payout.id, REF_NOW, treasurer.id);
+    expect(paid.status).toBe("paid");
+    expect(paid.autoApproved).toBe(true);
+  });
+
+  it("does not change payouts that were already waiting for approval", async () => {
+    // Requested while approval was still required, then the setting is switched off.
+    await prisma.setting.deleteMany({ where: { id: overrideId! } });
+    overrideId = null;
+    const member = await makeTestMember("appr-inflight", utcDate(2020, 1, 1));
+    const payout = await requestPayout(
+      { memberId: member.id, payoutType: "other", amount: 1000 },
+      treasurer.id,
+      REF_NOW
+    );
+    await setApprovalRequired("false");
+    const stillWaiting = await prisma.fundPayout.findUniqueOrThrow({ where: { id: payout.id } });
+    expect(stillWaiting.status).toBe("requested");
+    const approved = await vpDecision(payout.id, "approve", undefined, vp.id);
+    expect(approved.status).toBe("vp_approved");
+    void president;
+  });
+});

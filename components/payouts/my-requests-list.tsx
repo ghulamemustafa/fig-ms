@@ -27,6 +27,7 @@ export type MyRequestPayout = {
   payoutType: string;
   amount: string;
   status: string;
+  autoApproved: boolean;
   reason: string | null;
   vpRejectReason: string | null;
   presRejectReason: string | null;
@@ -69,7 +70,9 @@ export function MyRequestsList({ payouts }: { payouts: MyRequestPayout[] }) {
                 </p>
               </div>
               <Badge variant={STATUS_VARIANT[p.status] ?? "outline"}>
-                {tStatus(p.status as keyof typeof STATUS_VARIANT)}
+                {p.autoApproved && p.status === "president_approved"
+                  ? tStatus("autoApproved")
+                  : tStatus(p.status as keyof typeof STATUS_VARIANT)}
               </Badge>
             </div>
 

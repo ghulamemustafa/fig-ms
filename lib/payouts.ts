@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { auditCreate, auditUpdate } from "@/lib/audit";
 import { getFundEligibilityDetail } from "@/lib/rules";
+import { isPayoutApprovalRequired } from "@/lib/settings";
 import type { RequestPayoutInput } from "@/lib/schemas/payout";
 
 export class PayoutError extends Error {
@@ -59,6 +60,11 @@ function payoutRow<T extends { member?: unknown; requestedBy?: unknown; vpDecisi
  * eligibilityMonths so the caller can explain why) unless the member passes
  * isFundEligible. No cap on number or amount of claims — none is enforced
  * here by design, per the spec.
+ *
+ * When the requirePayoutApproval setting is off as of now, the payout skips the
+ * VP/President chain and is created ready to pay (status "president_approved",
+ * autoApproved true, both decision fields left empty — nobody decided). The
+ * setting is read once, here, so payouts already in flight keep their chain.
  */
 export async function requestPayout(
   input: RequestPayoutInput,
@@ -77,6 +83,8 @@ export async function requestPayout(
     );
   }
 
+  const approvalRequired = await isPayoutApprovalRequired(asOf);
+
   return prisma.$transaction(async (tx) => {
     const payout = await tx.fundPayout.create({
       data: {
@@ -84,7 +92,8 @@ export async function requestPayout(
         payoutType: input.payoutType,
         amount: input.amount,
         reason: input.reason || null,
-        status: "requested",
+        status: approvalRequired ? "requested" : "president_approved",
+        autoApproved: !approvalRequired,
         requestedById,
       },
       include: PAYOUT_INCLUDE,

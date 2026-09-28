@@ -38,6 +38,7 @@ export function PayoutRequestForm() {
   const [loadingMember, setLoadingMember] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [autoApproved, setAutoApproved] = useState(false);
 
   const {
     register,
@@ -105,6 +106,8 @@ export function PayoutRequestForm() {
       return;
     }
 
+    const data = await res.json().catch(() => null);
+    setAutoApproved(Boolean(data?.payout?.autoApproved));
     setSuccess(true);
   }
 
@@ -114,10 +117,13 @@ export function PayoutRequestForm() {
         <CardContent className="space-y-4 pt-6">
           <Alert>
             <Check className="size-4" />
-            <AlertDescription>{t("success")}</AlertDescription>
+            <AlertDescription>{autoApproved ? t("successAutoApproved") : t("success")}</AlertDescription>
           </Alert>
           <div className="flex flex-wrap gap-2">
             <Button onClick={changeMember}>{t("requestAnother")}</Button>
+            {autoApproved && (
+              <Button variant="outline" render={<Link href="/payouts/my-requests">{t("goToMyRequests")}</Link>} />
+            )}
             {member && (
               <Button
                 variant="outline"
