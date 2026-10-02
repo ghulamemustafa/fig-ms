@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Pagination, type PaginationProps } from "@/components/ui/pagination";
 
 export type MemberListRow = {
   id: string;
@@ -43,7 +44,13 @@ function EligibleBadge({ eligible }: { eligible: boolean }) {
   );
 }
 
-export function MemberList({ members }: { members: MemberListRow[] }) {
+export function MemberList({
+  members,
+  pagination,
+}: {
+  members: MemberListRow[];
+  pagination?: PaginationProps;
+}) {
   const t = useTranslations("membersPage");
 
   if (members.length === 0) {
@@ -119,6 +126,8 @@ export function MemberList({ members }: { members: MemberListRow[] }) {
           </Link>
         ))}
       </div>
+
+      {pagination && <Pagination {...pagination} />}
     </>
   );
 }

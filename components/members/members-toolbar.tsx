@@ -14,22 +14,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES, resolvePageSize } from "@/lib/pagination";
 
 const STATUSES = ["all", "active", "removed", "deceased"] as const;
 
 export function MembersToolbar() {
   const t = useTranslations("membersPage");
+  const tPagination = useTranslations("pagination");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
   const status = searchParams.get("status") ?? "all";
+  const pageSize = resolvePageSize(searchParams.get("pageSize") ?? undefined);
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
 
-  function updateParams(next: { status?: string; search?: string }) {
+  function updateParams(next: {
+    status?: string;
+    search?: string;
+    pageSize?: number;
+  }) {
     const params = new URLSearchParams(searchParams.toString());
-    const merged = { status, search, ...next };
+    const merged = { status, search, pageSize, ...next };
 
     if (merged.status && merged.status !== "all") {
       params.set("status", merged.status);
@@ -42,6 +49,15 @@ export function MembersToolbar() {
     } else {
       params.delete("search");
     }
+
+    if (merged.pageSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(merged.pageSize));
+    } else {
+      params.delete("pageSize");
+    }
+
+    // A new filter or page size invalidates the current page offset.
+    params.delete("page");
 
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`);
@@ -75,6 +91,27 @@ export function MembersToolbar() {
           {STATUSES.map((s) => (
             <SelectItem key={s} value={s}>
               {t(`filters.${s}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={String(pageSize)}
+        onValueChange={(value) =>
+          updateParams({ pageSize: Number(value as string) })
+        }
+      >
+        <SelectTrigger
+          aria-label={tPagination("rowsPerPage")}
+          className="w-full sm:w-32"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PAGE_SIZES.map((size) => (
+            <SelectItem key={size} value={String(size)}>
+              {tPagination("perPage", { size })}
             </SelectItem>
           ))}
         </SelectContent>

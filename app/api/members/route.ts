@@ -6,6 +6,12 @@ import { createMember, DuplicateFieldError, listMembers, type MemberStatus } fro
 
 const STATUSES: readonly MemberStatus[] = ["active", "removed", "deceased"];
 
+/**
+ * Both GET consumers are typeaheads, so an uncapped list is never useful here —
+ * and `listMembers` runs an eligibility check per row. Cap by default.
+ */
+const MAX_LIMIT = 50;
+
 export async function GET(request: Request) {
   try {
     await requireSession(); // any authenticated role can read
@@ -22,7 +28,10 @@ export async function GET(request: Request) {
   // ?q= is the global-search param; ?search= is kept for the Members list page.
   const search = (searchParams.get("q") ?? searchParams.get("search") ?? "").trim() || undefined;
   const limitParam = Number(searchParams.get("limit"));
-  const limit = Number.isInteger(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : undefined;
+  const limit =
+    Number.isInteger(limitParam) && limitParam > 0
+      ? Math.min(limitParam, MAX_LIMIT)
+      : MAX_LIMIT;
 
   const members = await listMembers({ status, search, limit });
   return NextResponse.json({ members });

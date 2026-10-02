@@ -3,7 +3,8 @@ import { Plus } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
 import { hasRole } from "@/lib/rbac";
-import { listMembers, type MemberStatus } from "@/lib/members";
+import { countMembers, listMembers, type MemberStatus } from "@/lib/members";
+import { pageCountOf, resolvePage, resolvePageSize } from "@/lib/pagination";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { MembersToolbar } from "@/components/members/members-toolbar";
@@ -14,17 +15,26 @@ const STATUSES: readonly MemberStatus[] = ["active", "removed", "deceased"];
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; search?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    search?: string;
+    page?: string;
+    pageSize?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const status = STATUSES.includes(sp.status as MemberStatus)
     ? (sp.status as MemberStatus)
     : undefined;
+  const filters = { status, search: sp.search };
+  const pageSize = resolvePageSize(sp.pageSize);
 
-  const [members, session] = await Promise.all([
-    listMembers({ status, search: sp.search }),
-    getSession(),
-  ]);
+  const [total, session] = await Promise.all([countMembers(filters), getSession()]);
+
+  // Clamp so a hand-edited ?page= never lands on an empty list.
+  const page = resolvePage(sp.page, pageCountOf(total, pageSize));
+
+  const members = await listMembers({ ...filters, page, pageSize });
 
   const canCreate = hasRole(session?.user?.role, ["admin", "data_entry", "treasurer"]);
 
@@ -32,6 +42,9 @@ export default async function MembersPage({
     <MembersPageContent
       members={members}
       canCreate={canCreate}
+      page={page}
+      pageSize={pageSize}
+      total={total}
     />
   );
 }
@@ -39,9 +52,15 @@ export default async function MembersPage({
 function MembersPageContent({
   members,
   canCreate,
+  page,
+  pageSize,
+  total,
 }: {
   members: Awaited<ReturnType<typeof listMembers>>;
   canCreate: boolean;
+  page: number;
+  pageSize: number;
+  total: number;
 }) {
   const t = useTranslations("membersPage");
 
@@ -73,6 +92,7 @@ function MembersPageContent({
           status: m.status,
           fundEligible: m.fundEligible,
         }))}
+        pagination={{ page, pageSize, total }}
       />
     </div>
   );

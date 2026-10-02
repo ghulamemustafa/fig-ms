@@ -246,7 +246,7 @@ export function SuccessionDialog({
                 </div>
                 <div className="space-y-1.5">
                   <Label>{tForm("fields.cnic")}</Label>
-                  <Input placeholder="12345-1234567-1" {...register("cnic")} />
+                  <Input placeholder="1234512345671" {...register("cnic")} />
                   {errors.cnic?.message && (
                     <p className="text-sm text-destructive">
                       {errors.cnic.message as string}

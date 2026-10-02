@@ -30,6 +30,15 @@
     "skipToContent": "Skip to content",
     "loading": "Loading…"
   },
+  "pagination": {
+    "label": "Pagination",
+    "showing": "Showing {start}–{end} of {total}",
+    "pageOf": "Page {page} of {pageCount}",
+    "previous": "Previous",
+    "next": "Next",
+    "rowsPerPage": "Rows per page",
+    "perPage": "{size} / page"
+  },
   "notFoundPage": {
     "title": "Page not found",
     "body": "The page you're looking for doesn't exist or may have moved.",
@@ -142,7 +151,7 @@
       "name": "Name",
       "fatherName": "Father's name",
       "cnic": "CNIC",
-      "cnicHint": "Format: 12345-1234567-1",
+      "cnicHint": "Format: 1234512345671 (13 digits, no dashes)",
       "serialNo": "Serial No",
       "mobile": "Mobile",
       "address": "Address",
@@ -182,7 +191,7 @@
     "cancel": "Cancel",
     "errors": {
       "required": "This field is required.",
-      "invalidCnic": "Format: 12345-1234567-1",
+      "invalidCnic": "Format: 1234512345671 (13 digits, no dashes)",
       "invalidMobile": "Enter a valid mobile number.",
       "invalidNumber": "Must be a number.",
       "cnicTaken": "This CNIC is already registered.",

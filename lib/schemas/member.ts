@@ -10,7 +10,7 @@ export const DEPENDENT_RELATIONS = [
   "other",
 ] as const;
 
-const cnicRegex = /^\d{5}-\d{7}-\d{1}$/;
+const cnicRegex = /^\d{13}$/;
 
 function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
@@ -30,7 +30,7 @@ export type DependentInput = z.infer<typeof dependentSchema>;
 const memberFieldsSchema = z.object({
   name: z.string().min(1),
   fatherName: z.string().min(1),
-  cnic: z.string().regex(cnicRegex, "Format: 12345-1234567-1"),
+  cnic: z.string().regex(cnicRegex, "Format: 13 digits, no dashes"),
   serialNo: z.string().min(1),
   mobile: z
     .string()
@@ -68,7 +68,7 @@ export const succeedMemberSchema = z.discriminatedUnion("mode", [
     mode: z.literal("promoteDependent"),
     dependentId: z.string().min(1),
     // Fields the Dependent model doesn't carry, needed to complete a Member row.
-    cnic: z.string().regex(cnicRegex, "Format: 12345-1234567-1"),
+    cnic: z.string().regex(cnicRegex, "Format: 13 digits, no dashes"),
     serialNo: z.string().min(1),
     mobile: z
       .string()

@@ -44,30 +44,50 @@ async function assertUnique(
   }
 }
 
-export async function listMembers(params: {
+export type MemberListFilters = {
   status?: MemberStatus;
   search?: string;
-  limit?: number;
-}) {
+};
+
+function memberListWhere(filters: MemberListFilters) {
   const insensitive = { mode: "insensitive" as const };
-  const where = {
-    ...(params.status ? { status: params.status } : {}),
-    ...(params.search
+  return {
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.search
       ? {
           OR: [
-            { name: { contains: params.search, ...insensitive } },
-            { cnic: { contains: params.search, ...insensitive } },
-            { serialNo: { contains: params.search, ...insensitive } },
-            { mobile: { contains: params.search, ...insensitive } },
+            { name: { contains: filters.search, ...insensitive } },
+            { cnic: { contains: filters.search, ...insensitive } },
+            { serialNo: { contains: filters.search, ...insensitive } },
+            { mobile: { contains: filters.search, ...insensitive } },
           ],
         }
       : {}),
   };
+}
+
+/** Total rows matching the filters — pairs with `listMembers` for pagination. */
+export async function countMembers(filters: MemberListFilters) {
+  return prisma.member.count({ where: memberListWhere(filters) });
+}
+
+export async function listMembers(
+  params: MemberListFilters & {
+    limit?: number;
+    /** 1-based page number. Requires `pageSize`. */
+    page?: number;
+    pageSize?: number;
+  }
+) {
+  const where = memberListWhere(params);
+  const take = params.pageSize ?? params.limit;
+  const skip = params.pageSize ? (Math.max(1, params.page ?? 1) - 1) * params.pageSize : 0;
 
   const members = await prisma.member.findMany({
     where,
     orderBy: { serialNo: "asc" },
-    ...(params.limit ? { take: params.limit } : {}),
+    ...(take ? { take } : {}),
+    ...(skip ? { skip } : {}),
   });
 
   const withEligibility = await Promise.all(

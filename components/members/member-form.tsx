@@ -131,7 +131,7 @@ export function MemberForm({
             hint={t("fields.cnicHint")}
             error={errors.cnic?.message}
           >
-            <Input placeholder="12345-1234567-1" {...register("cnic")} />
+            <Input placeholder="1234512345671" {...register("cnic")} />
           </Field>
 
           <Field label={t("fields.serialNo")} error={errors.serialNo?.message}>
