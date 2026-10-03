@@ -209,7 +209,7 @@ describe("payout approval setting", () => {
     expect(payout.autoApproved).toBe(false);
   });
 
-  it("with approval not required, a request is ready to pay with no decisions recorded", async () => {
+  it("with approval not required, a request is paid immediately with paidDate set to request date", async () => {
     await setApprovalRequired("false");
     const member = await makeTestMember("appr-off", utcDate(2020, 1, 1));
     const payout = await requestPayout(
@@ -217,18 +217,19 @@ describe("payout approval setting", () => {
       treasurer.id,
       REF_NOW
     );
-    expect(payout.status).toBe("president_approved");
+    expect(payout.status).toBe("paid");
     expect(payout.autoApproved).toBe(true);
+    expect(payout.paidDate).toEqual(REF_NOW);
     expect(payout.vpDecisionById).toBeNull();
     expect(payout.presDecisionById).toBeNull();
 
-    // No approver acts on it, and it can be paid straight away.
+    // No approver acts on it, and it cannot be paid again.
     await expect(vpDecision(payout.id, "approve", undefined, vp.id)).rejects.toMatchObject({
       code: "INVALID_STATE",
     });
-    const paid = await markPaid(payout.id, REF_NOW, treasurer.id);
-    expect(paid.status).toBe("paid");
-    expect(paid.autoApproved).toBe(true);
+    await expect(markPaid(payout.id, REF_NOW, treasurer.id)).rejects.toMatchObject({
+      code: "INVALID_STATE",
+    });
   });
 
   it("does not change payouts that were already waiting for approval", async () => {

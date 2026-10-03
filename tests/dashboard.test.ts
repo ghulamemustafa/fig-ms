@@ -100,4 +100,65 @@ describe("getDashboardSummary", () => {
       await prisma.member.delete({ where: { id: member.id } });
     }
   });
+
+  it("sorts recent payouts by createdAt descending instead of id", async () => {
+    const user = await prisma.user.findFirst();
+    if (!user) return;
+
+    const member = await prisma.member.create({
+      data: {
+        serialNo: "DASH-SORT-TEST-1",
+        name: "Dash Sort Member",
+        fatherName: "Test Father",
+        cnic: "99999-DASH-SORT-1",
+        mobile: "0300-9998877",
+        address: "Test address",
+        maritalStatus: "single",
+        occupation: "Tester",
+        income: 5000,
+        dob: new Date("1990-01-01T00:00:00.000Z"),
+        originalJoinDate: new Date("2090-01-01T00:00:00.000Z"),
+        currentJoinDate: new Date("2090-01-01T00:00:00.000Z"),
+        status: "active",
+      },
+    });
+
+    // Payout1 is created first (smaller id), but has a later createdAt date
+    // Payout2 is created second (larger id), but has an earlier createdAt date
+    const payout1 = await prisma.fundPayout.create({
+      data: {
+        memberId: member.id,
+        payoutType: "funeral",
+        amount: 10000,
+        status: "requested",
+        requestedById: user.id,
+        createdAt: new Date("2099-05-10T12:00:00.000Z"),
+      },
+    });
+
+    const payout2 = await prisma.fundPayout.create({
+      data: {
+        memberId: member.id,
+        payoutType: "widow",
+        amount: 20000,
+        status: "requested",
+        requestedById: user.id,
+        createdAt: new Date("2099-05-01T12:00:00.000Z"),
+      },
+    });
+
+    try {
+      const summary = await getDashboardSummary();
+      const p1Index = summary.recentPayouts.findIndex((p) => p.id === payout1.id);
+      const p2Index = summary.recentPayouts.findIndex((p) => p.id === payout2.id);
+
+      expect(p1Index).toBeGreaterThanOrEqual(0);
+      expect(p2Index).toBeGreaterThanOrEqual(0);
+      expect(p1Index).toBeLessThan(p2Index);
+    } finally {
+      await prisma.fundPayout.deleteMany({ where: { id: { in: [payout1.id, payout2.id] } } });
+      await prisma.member.delete({ where: { id: member.id } });
+    }
+  });
 });
+

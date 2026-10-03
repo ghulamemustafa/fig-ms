@@ -187,8 +187,8 @@ function payoutRow<T extends { member?: unknown; requestedBy?: unknown; vpDecisi
  * here by design, per the spec.
  *
  * When the requirePayoutApproval setting is off as of now, the payout skips the
- * VP/President chain and is created ready to pay (status "president_approved",
- * autoApproved true, both decision fields left empty — nobody decided). The
+ * VP/President chain and is created with status "paid" and paidDate set to the
+ * request date (autoApproved true, both decision fields left empty — nobody decided). The
  * setting is read once, here, so payouts already in flight keep their chain.
  */
 export async function requestPayout(
@@ -217,8 +217,10 @@ export async function requestPayout(
         payoutType: input.payoutType,
         amount: input.amount,
         reason: input.reason || null,
-        status: approvalRequired ? "requested" : "president_approved",
+        status: approvalRequired ? "requested" : "paid",
         autoApproved: !approvalRequired,
+        paidDate: approvalRequired ? null : asOf,
+        createdAt: asOf,
         requestedById,
       },
       include: PAYOUT_INCLUDE,

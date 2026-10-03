@@ -397,7 +397,7 @@
     "submitting": "Submitting...",
     "success": "Payout request submitted.",
     "goToMyRequests": "Go to My Requests",
-    "successAutoApproved": "Payout request recorded. Approval is not required right now, so it is ready to be marked as paid from My Requests.",
+    "successAutoApproved": "Payout request recorded and marked as paid (approval not required).",
     "requestAnother": "Request another payout",
     "notEligibleTitle": "Not fund-eligible",
     "notEligibleBody": "This member has been active for {monthsActive} month(s); fund payouts require more than {eligibilityMonths}.",

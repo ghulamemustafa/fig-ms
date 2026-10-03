@@ -41,6 +41,7 @@ export type DashboardSummary = {
     payoutType: string;
     amount: number;
     status: string;
+    createdAt: string;
   }[];
   pendingApprovals: { vp: number; president: number };
   requirePayoutApproval: boolean;
@@ -117,7 +118,7 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
     }),
     prisma.fundPayout.findMany({
       take: 5,
-      orderBy: { id: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       include: { member: { select: { id: true, name: true } } },
     }),
     prisma.fundPayout.count({ where: { status: "requested" } }),
@@ -183,6 +184,7 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
       payoutType: p.payoutType,
       amount: Number(p.amount),
       status: p.status,
+      createdAt: p.createdAt.toISOString(),
     })),
     pendingApprovals: { vp: pendingVp, president: pendingPresident },
     requirePayoutApproval,
