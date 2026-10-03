@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { AuthError, authErrorResponse, requireRole, requireSession } from "@/lib/auth-guards";
 import { incomeEntrySchema } from "@/lib/schemas/ledger";
-import { createIncome, getIncomeTotal, listIncome } from "@/lib/ledgers";
+import { countIncome, createIncome, getIncomeTotal, listIncome } from "@/lib/ledgers";
+import { pageCountOf, resolvePage, resolvePageSize } from "@/lib/pagination";
 
 function parseDateRange(searchParams: URLSearchParams) {
   const from = searchParams.get("from");
@@ -21,13 +22,28 @@ export async function GET(request: Request) {
     throw error;
   }
 
-  const filters = parseDateRange(new URL(request.url).searchParams);
-  const [entries, total] = await Promise.all([
-    listIncome(filters),
+  const searchParams = new URL(request.url).searchParams;
+  const filters = parseDateRange(searchParams);
+  const isAll = searchParams.get("all") === "true";
+
+  if (isAll) {
+    const [entries, total, count] = await Promise.all([
+      listIncome(filters),
+      getIncomeTotal(filters),
+      countIncome(filters),
+    ]);
+    return NextResponse.json({ entries, total, count, page: 1, pageSize: count });
+  }
+
+  const pageSize = resolvePageSize(searchParams.get("pageSize") ?? undefined);
+  const [count, total] = await Promise.all([
+    countIncome(filters),
     getIncomeTotal(filters),
   ]);
+  const page = resolvePage(searchParams.get("page") ?? undefined, pageCountOf(count, pageSize));
+  const entries = await listIncome({ ...filters, page, pageSize });
 
-  return NextResponse.json({ entries, total });
+  return NextResponse.json({ entries, total, count, page, pageSize });
 }
 
 export async function POST(request: Request) {

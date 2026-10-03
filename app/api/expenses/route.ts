@@ -3,11 +3,13 @@ import { NextResponse } from "next/server";
 import { AuthError, authErrorResponse, requireRole, requireSession } from "@/lib/auth-guards";
 import { expenseEntrySchema } from "@/lib/schemas/ledger";
 import {
+  countExpenses,
   createExpense,
   getExpenseTotal,
   listExpenseCategories,
   listExpenses,
 } from "@/lib/ledgers";
+import { pageCountOf, resolvePage, resolvePageSize } from "@/lib/pagination";
 
 function parseFilters(searchParams: URLSearchParams) {
   const from = searchParams.get("from");
@@ -28,14 +30,30 @@ export async function GET(request: Request) {
     throw error;
   }
 
-  const filters = parseFilters(new URL(request.url).searchParams);
-  const [entries, total, categories] = await Promise.all([
-    listExpenses(filters),
+  const searchParams = new URL(request.url).searchParams;
+  const filters = parseFilters(searchParams);
+  const isAll = searchParams.get("all") === "true";
+
+  if (isAll) {
+    const [entries, total, categories, count] = await Promise.all([
+      listExpenses(filters),
+      getExpenseTotal(filters),
+      listExpenseCategories(),
+      countExpenses(filters),
+    ]);
+    return NextResponse.json({ entries, total, categories, count, page: 1, pageSize: count });
+  }
+
+  const pageSize = resolvePageSize(searchParams.get("pageSize") ?? undefined);
+  const [count, total, categories] = await Promise.all([
+    countExpenses(filters),
     getExpenseTotal(filters),
     listExpenseCategories(),
   ]);
+  const page = resolvePage(searchParams.get("page") ?? undefined, pageCountOf(count, pageSize));
+  const entries = await listExpenses({ ...filters, page, pageSize });
 
-  return NextResponse.json({ entries, total, categories });
+  return NextResponse.json({ entries, total, categories, count, page, pageSize });
 }
 
 export async function POST(request: Request) {

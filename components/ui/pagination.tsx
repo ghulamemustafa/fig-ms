@@ -16,6 +16,8 @@ export type PaginationProps = {
   total: number;
   /** Search param carrying the page number. */
   paramName?: string;
+  /** Optional callback. If omitted, Pagination updates the URL paramName via router.push. */
+  onPageChange?: (page: number) => void;
 };
 
 export function Pagination({
@@ -23,6 +25,7 @@ export function Pagination({
   pageSize,
   total,
   paramName = "page",
+  onPageChange,
 }: PaginationProps) {
   const t = useTranslations("pagination");
   const router = useRouter();
@@ -37,6 +40,11 @@ export function Pagination({
   const rangeEnd = Math.min(page * pageSize, total);
 
   function goTo(next: number) {
+    if (onPageChange) {
+      onPageChange(next);
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     // Page 1 is the default — keep it out of the URL.
     if (next <= 1) {

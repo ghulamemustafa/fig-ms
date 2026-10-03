@@ -1,7 +1,9 @@
 "use client";
 
 import { EmptyState } from "@/components/ui/empty-state";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations, useFormatter } from "next-intl";
@@ -9,6 +11,7 @@ import { Loader2, Plus, Pencil, Gift } from "lucide-react";
 import type { z } from "zod";
 
 import { donationEntrySchema } from "@/lib/schemas/ledger";
+import { DEFAULT_PAGE_SIZE, pageCountOf, resolvePage, resolvePageSize, type PageSize } from "@/lib/pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +34,8 @@ import {
 } from "@/components/ui/dialog";
 import { DateRangeFilter } from "@/components/ledgers/date-range-filter";
 import { DeleteEntryDialog } from "@/components/ledgers/delete-entry-dialog";
+import { PageSizeSelect } from "@/components/ledgers/page-size-select";
+import { Pagination } from "@/components/ui/pagination";
 
 type DonationEntry = {
   id: string;
@@ -55,12 +60,25 @@ export function DonationLedger({
   const tCommon = useTranslations("ledgerCommon");
   const format = useFormatter();
 
-  const [range, setRange] = useState({ from: "", to: "" });
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [, startTransition] = useTransition();
+
+  const pageSize = resolvePageSize(searchParams.get("pageSize") ?? undefined);
+  const rawPage = searchParams.get("page") ?? undefined;
+  const fromParam = searchParams.get("from") ?? "";
+  const toParam = searchParams.get("to") ?? "";
+
+  const [range, setRange] = useState({ from: fromParam, to: toParam });
   const [entries, setEntries] = useState<DonationEntry[]>([]);
   const [total, setTotal] = useState(0);
+  const [count, setCount] = useState(0);
   const [dialogEntry, setDialogEntry] = useState<DonationEntry | "new" | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = () => setRefreshKey((k) => k + 1);
+
+  const page = resolvePage(rawPage, pageCountOf(count, pageSize));
 
   useEffect(() => {
     let cancelled = false;
@@ -68,17 +86,47 @@ export function DonationLedger({
       const params = new URLSearchParams();
       if (range.from) params.set("from", range.from);
       if (range.to) params.set("to", range.to);
+      if (page > 1) params.set("page", String(page));
+      if (pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(pageSize));
+
       const res = await fetch(`/api/donations?${params.toString()}`);
       const data = await res.json();
       if (!cancelled) {
-        setEntries(data.entries);
-        setTotal(data.total);
+        setEntries(data.entries ?? []);
+        setTotal(data.total ?? 0);
+        setCount(data.count ?? 0);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [range.from, range.to, refreshKey]);
+  }, [range.from, range.to, page, pageSize, refreshKey]);
+
+  function handleRangeChange(next: { from: string; to: string }) {
+    setRange(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next.from) params.set("from", next.from);
+    else params.delete("from");
+    if (next.to) params.set("to", next.to);
+    else params.delete("to");
+    params.delete("page");
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
+  }
+
+  function handlePageSizeChange(nextSize: PageSize) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(nextSize));
+    } else {
+      params.delete("pageSize");
+    }
+    params.delete("page");
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
+  }
 
   async function handleDelete(id: string) {
     await fetch(`/api/donations/${id}`, { method: "DELETE" });
@@ -88,7 +136,12 @@ export function DonationLedger({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <DateRangeFilter from={range.from} to={range.to} onChange={setRange} />
+        <DateRangeFilter
+          from={range.from}
+          to={range.to}
+          onChange={handleRangeChange}
+          extra={<PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />}
+        />
         {canManage && (
           <Button onClick={() => setDialogEntry("new")} className="w-full sm:w-auto">
             <Plus className="size-4" />
@@ -176,6 +229,12 @@ export function DonationLedger({
               </div>
             ))}
           </div>
+
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={count}
+          />
         </>
       )}
 

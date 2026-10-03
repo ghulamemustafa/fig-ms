@@ -1,7 +1,9 @@
 "use client";
 
 import { EmptyState } from "@/components/ui/empty-state";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations, useFormatter } from "next-intl";
@@ -9,6 +11,7 @@ import { Loader2, Plus, Pencil, Receipt } from "lucide-react";
 import type { z } from "zod";
 
 import { expenseEntrySchema } from "@/lib/schemas/ledger";
+import { DEFAULT_PAGE_SIZE, pageCountOf, resolvePage, resolvePageSize, type PageSize } from "@/lib/pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +41,8 @@ import {
 } from "@/components/ui/dialog";
 import { DateRangeFilter } from "@/components/ledgers/date-range-filter";
 import { DeleteEntryDialog } from "@/components/ledgers/delete-entry-dialog";
+import { PageSizeSelect } from "@/components/ledgers/page-size-select";
+import { Pagination } from "@/components/ui/pagination";
 
 type ExpenseEntry = {
   id: string;
@@ -64,14 +69,28 @@ export function ExpenseLedger({
   const tCommon = useTranslations("ledgerCommon");
   const format = useFormatter();
 
-  const [range, setRange] = useState({ from: "", to: "" });
-  const [category, setCategory] = useState(ALL_CATEGORIES);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [, startTransition] = useTransition();
+
+  const pageSize = resolvePageSize(searchParams.get("pageSize") ?? undefined);
+  const rawPage = searchParams.get("page") ?? undefined;
+  const fromParam = searchParams.get("from") ?? "";
+  const toParam = searchParams.get("to") ?? "";
+  const categoryParam = searchParams.get("category") ?? ALL_CATEGORIES;
+
+  const [range, setRange] = useState({ from: fromParam, to: toParam });
+  const [category, setCategory] = useState(categoryParam);
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
+  const [count, setCount] = useState(0);
   const [dialogEntry, setDialogEntry] = useState<ExpenseEntry | "new" | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = () => setRefreshKey((k) => k + 1);
+
+  const page = resolvePage(rawPage, pageCountOf(count, pageSize));
 
   useEffect(() => {
     let cancelled = false;
@@ -80,18 +99,63 @@ export function ExpenseLedger({
       if (range.from) params.set("from", range.from);
       if (range.to) params.set("to", range.to);
       if (category !== ALL_CATEGORIES) params.set("category", category);
+      if (page > 1) params.set("page", String(page));
+      if (pageSize !== DEFAULT_PAGE_SIZE) params.set("pageSize", String(pageSize));
+
       const res = await fetch(`/api/expenses?${params.toString()}`);
       const data = await res.json();
       if (!cancelled) {
-        setEntries(data.entries);
-        setTotal(data.total);
-        setCategories(data.categories);
+        setEntries(data.entries ?? []);
+        setTotal(data.total ?? 0);
+        setCategories(data.categories ?? []);
+        setCount(data.count ?? 0);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [range.from, range.to, category, refreshKey]);
+  }, [range.from, range.to, category, page, pageSize, refreshKey]);
+
+  function handleRangeChange(next: { from: string; to: string }) {
+    setRange(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next.from) params.set("from", next.from);
+    else params.delete("from");
+    if (next.to) params.set("to", next.to);
+    else params.delete("to");
+    params.delete("page");
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
+  }
+
+  function handleCategoryChange(nextCat: string | null) {
+    const cat = nextCat ?? ALL_CATEGORIES;
+    setCategory(cat);
+    const params = new URLSearchParams(searchParams.toString());
+    if (cat && cat !== ALL_CATEGORIES) {
+      params.set("category", cat);
+    } else {
+      params.delete("category");
+    }
+    params.delete("page");
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
+  }
+
+  function handlePageSizeChange(nextSize: PageSize) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextSize !== DEFAULT_PAGE_SIZE) {
+      params.set("pageSize", String(nextSize));
+    } else {
+      params.delete("pageSize");
+    }
+    params.delete("page");
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
+  }
 
   async function handleDelete(id: string) {
     await fetch(`/api/expenses/${id}`, { method: "DELETE" });
@@ -104,27 +168,30 @@ export function ExpenseLedger({
         <DateRangeFilter
           from={range.from}
           to={range.to}
-          onChange={setRange}
+          onChange={handleRangeChange}
           extra={
-            <div className="space-y-1.5">
-              <Label>{t("categoryFilterLabel")}</Label>
-              <Select
-                value={category}
-                onValueChange={(value) => setCategory(value ?? ALL_CATEGORIES)}
-              >
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_CATEGORIES}>{t("allCategories")}</SelectItem>
-                  {categories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label>{t("categoryFilterLabel")}</Label>
+                <Select
+                  value={category}
+                  onValueChange={handleCategoryChange}
+                >
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_CATEGORIES}>{t("allCategories")}</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />
+            </>
           }
         />
         {canManage && (
@@ -214,6 +281,12 @@ export function ExpenseLedger({
               </div>
             ))}
           </div>
+
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={count}
+          />
         </>
       )}
 

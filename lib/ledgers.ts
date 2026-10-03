@@ -10,6 +10,26 @@ import type {
 
 export type DateRangeFilter = { from?: Date; to?: Date };
 
+export type PaginationFilter = {
+  /** 1-based page number. Requires `pageSize`. */
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+};
+
+export type IncomeFilter = DateRangeFilter & PaginationFilter;
+export type DonationFilter = DateRangeFilter & PaginationFilter;
+export type ExpenseFilter = DateRangeFilter & PaginationFilter & { category?: string };
+
+function paginationTakeSkip(params: PaginationFilter) {
+  const take = params.pageSize ?? params.limit;
+  const skip = params.pageSize ? (Math.max(1, params.page ?? 1) - 1) * params.pageSize : 0;
+  return {
+    ...(take !== undefined ? { take } : {}),
+    ...(skip > 0 ? { skip } : {}),
+  };
+}
+
 function dateWhere({ from, to }: DateRangeFilter) {
   if (!from && !to) return undefined;
   return {
@@ -20,10 +40,19 @@ function dateWhere({ from, to }: DateRangeFilter) {
 
 // --- OtherIncome ---
 
-export async function listIncome(filters: DateRangeFilter) {
+export async function countIncome(filters: DateRangeFilter = {}): Promise<number> {
+  return prisma.otherIncome.count({
+    where: { deletedAt: null, ...(dateWhere(filters) ? { date: dateWhere(filters) } : {}) },
+  });
+}
+
+export async function listIncome(filters: IncomeFilter = {}) {
+  const { take, skip } = paginationTakeSkip(filters);
   return prisma.otherIncome.findMany({
     where: { deletedAt: null, ...(dateWhere(filters) ? { date: dateWhere(filters) } : {}) },
     orderBy: { date: "desc" },
+    ...(take !== undefined ? { take } : {}),
+    ...(skip !== undefined ? { skip } : {}),
   });
 }
 
@@ -71,10 +100,19 @@ export async function softDeleteIncome(id: string, changedBy: string) {
 
 // --- Donation ---
 
-export async function listDonations(filters: DateRangeFilter) {
+export async function countDonations(filters: DateRangeFilter = {}): Promise<number> {
+  return prisma.donation.count({
+    where: { deletedAt: null, ...(dateWhere(filters) ? { date: dateWhere(filters) } : {}) },
+  });
+}
+
+export async function listDonations(filters: DonationFilter = {}) {
+  const { take, skip } = paginationTakeSkip(filters);
   return prisma.donation.findMany({
     where: { deletedAt: null, ...(dateWhere(filters) ? { date: dateWhere(filters) } : {}) },
     orderBy: { date: "desc" },
+    ...(take !== undefined ? { take } : {}),
+    ...(skip !== undefined ? { skip } : {}),
   });
 }
 
@@ -122,26 +160,33 @@ export async function softDeleteDonation(id: string, changedBy: string) {
 
 // --- Expense ---
 
-export type ExpenseFilter = DateRangeFilter & { category?: string };
+function expenseWhere(filters: ExpenseFilter) {
+  return {
+    deletedAt: null,
+    ...(dateWhere(filters) ? { date: dateWhere(filters) } : {}),
+    ...(filters.category ? { category: filters.category } : {}),
+  };
+}
 
-export async function listExpenses(filters: ExpenseFilter) {
+export async function countExpenses(filters: ExpenseFilter = {}): Promise<number> {
+  return prisma.expense.count({
+    where: expenseWhere(filters),
+  });
+}
+
+export async function listExpenses(filters: ExpenseFilter = {}) {
+  const { take, skip } = paginationTakeSkip(filters);
   return prisma.expense.findMany({
-    where: {
-      deletedAt: null,
-      ...(dateWhere(filters) ? { date: dateWhere(filters) } : {}),
-      ...(filters.category ? { category: filters.category } : {}),
-    },
+    where: expenseWhere(filters),
     orderBy: { date: "desc" },
+    ...(take !== undefined ? { take } : {}),
+    ...(skip !== undefined ? { skip } : {}),
   });
 }
 
 export async function getExpenseTotal(filters: ExpenseFilter = {}): Promise<number> {
   const result = await prisma.expense.aggregate({
-    where: {
-      deletedAt: null,
-      ...(dateWhere(filters) ? { date: dateWhere(filters) } : {}),
-      ...(filters.category ? { category: filters.category } : {}),
-    },
+    where: expenseWhere(filters),
     _sum: { amount: true },
   });
   return Number(result._sum.amount ?? 0);

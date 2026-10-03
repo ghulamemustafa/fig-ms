@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 
 import { getSession } from "@/lib/auth-guards";
@@ -27,7 +28,9 @@ function IncomePageContent({
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-      <IncomeLedger canManage={canManage} canDelete={canDelete} />
+      <Suspense>
+        <IncomeLedger canManage={canManage} canDelete={canDelete} />
+      </Suspense>
     </div>
   );
 }
