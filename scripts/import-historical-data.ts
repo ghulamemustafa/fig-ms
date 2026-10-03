@@ -341,10 +341,13 @@ async function main() {
   historicalMembers.forEach(hm => membersBySerial.set(hm.serialNo, hm));
   console.log(`✔ Integrated ${historicalMembers.length} predecessors & former members (Total: ${membersBySerial.size}).`);
 
-  // Build name resolution lookup for 2022-2023
+  // Build name resolution lookup for 2022-2023 (preserve earlier serials when identical names exist)
   const nameToSerial = new Map<string, string>();
   membersBySerial.forEach((m, s) => {
-    nameToSerial.set(normalize(m.name), s);
+    const norm = normalize(m.name);
+    if (!nameToSerial.has(norm)) {
+      nameToSerial.set(norm, s);
+    }
   });
 
   const historicalResolutions: Record<string, string> = {
@@ -359,17 +362,34 @@ async function main() {
     [normalize("Basharat Ali")]: "HIS-0046",
   };
 
+  // Predecessor / Successor membership definitions
+  // Payments on or before Date of Death (DOD) belong to predecessor (HIS-####).
+  // Payments after DOD strictly belong to successor (FIC-####).
+  const successions: Record<number, { pred: string; succ: string; dodYear: number; dodMonth: number }> = {
+    7: { pred: "HIS-0007", succ: "FIC-0007", dodYear: 2025, dodMonth: 8 },  // Sep 19, 2025 (month index 8)
+    2: { pred: "HIS-0002", succ: "FIC-0002", dodYear: 2024, dodMonth: 3 },  // Apr 7, 2024 (month index 3)
+    62: { pred: "HIS-0062", succ: "FIC-0062", dodYear: 2023, dodMonth: 10 }, // Nov 2, 2023 (month index 10)
+    142: { pred: "HIS-0142", succ: "FIC-0142", dodYear: 2025, dodMonth: 11 }, // Dec 31, 2025 (month index 11)
+    149: { pred: "HIS-0149", succ: "FIC-0149", dodYear: 2025, dodMonth: 11 }, // Dec 31, 2025 (month index 11)
+  };
+
   /**
-   * Resolves row to canonical serialNo.
+   * Resolves row and payment month to canonical serialNo.
    * Sheets 2024-2026 are evaluated by authoritative serial column FIRST.
    * Name lookup is strictly applied for 2022-2023, avoiding name collision on Ser 103!
+   * Successions split at Date of Death: payments strictly link to successor after DOD.
    */
-  function resolveMemberSerial(year: number, ser: number, rawName: string): string | undefined {
+  function resolveMemberSerial(year: number, monthIndex: number, ser: number, rawName: string): string | undefined {
+    // 1. Successions check across all years
+    if (successions[ser]) {
+      const succ = successions[ser];
+      const isAfterDOD = year > succ.dodYear || (year === succ.dodYear && monthIndex > succ.dodMonth);
+      return isAfterDOD ? succ.succ : succ.pred;
+    }
+
+    // 2. Sheets 2024-2026: Authoritative serial
     if (year >= 2024) {
-      if ((year === 2024 || year === 2025) && ser === 7) return "HIS-0007";
-      if ((year === 2024 || year === 2025) && ser === 62) return "HIS-0062";
-      if (year === 2025 && ser === 142) return "HIS-0142";
-      if (year === 2025 && ser === 149) return "HIS-0149";
+      if (ser === 125) return "HIS-0125";
       const candFic = `FIC-${String(ser).padStart(4, "0")}`;
       const candHis = `HIS-${String(ser).padStart(4, "0")}`;
       if (membersBySerial.has(candFic)) return candFic;
@@ -377,13 +397,18 @@ async function main() {
       return candFic;
     }
 
-    // 2022 and 2023: Exact match only, NO fuzzy substring searching
+    // 3. Sheets 2022-2023: Exact match only, NO fuzzy substring searching
     const norm = normalize(rawName);
-    if (historicalResolutions[norm]) {
-      return historicalResolutions[norm];
-    }
-    if (nameToSerial.has(norm)) {
-      return nameToSerial.get(norm);
+    let resolved = historicalResolutions[norm] || nameToSerial.get(norm);
+    if (resolved) {
+      // If resolved to a predecessor that has a succession, check if this payment month is after DOD
+      for (const succ of Object.values(successions)) {
+        if (resolved === succ.pred) {
+          const isAfterDOD = year > succ.dodYear || (year === succ.dodYear && monthIndex > succ.dodMonth);
+          return isAfterDOD ? succ.succ : succ.pred;
+        }
+      }
+      return resolved;
     }
     return undefined;
   }
@@ -408,10 +433,6 @@ async function main() {
       const ser = row.getCell(1).value;
       if (typeof ser !== "number") continue;
       const name = String(row.getCell(2).value || "").trim();
-      const s = resolveMemberSerial(sy.year, ser, name);
-      if (!s || !membersBySerial.has(s)) continue;
-
-      const m = membersBySerial.get(s)!;
 
       // Find first non-zero payment month in this sheet
       for (let c = sy.startCol; c <= sy.startCol + (sy.endM - sy.startM); c++) {
@@ -419,11 +440,14 @@ async function main() {
         if (val && typeof val === "object" && "result" in val) val = (val as any).result;
         if (Number(val) > 0) {
           const mIdx = sy.startM + (c - sy.startCol);
+          const s = resolveMemberSerial(sy.year, mIdx, ser, name);
+          if (!s || !membersBySerial.has(s)) continue;
+
+          const m = membersBySerial.get(s)!;
           const payDate = startOfMonthUTC(sy.year, mIdx);
           if (!m.detectedFirstPaymentMonth || payDate.getTime() < m.detectedFirstPaymentMonth.getTime()) {
             m.detectedFirstPaymentMonth = payDate;
           }
-          break;
         }
       }
     }
@@ -495,6 +519,7 @@ async function main() {
     description: string;
   }
   interface ParsedPayout {
+    rowNum: number;
     date: Date;
     memberName: string;
     amount: number;
@@ -606,6 +631,7 @@ async function main() {
         else if (lower.includes("medical")) pType = "other";
 
         payoutList.push({
+          rowNum: r,
           date: recordDate,
           memberName: desc,
           amount: exp,
@@ -655,14 +681,6 @@ async function main() {
       if (typeof ser !== "number") continue;
       const rawName = String(row.getCell(2).value || "").trim();
 
-      const memberSerial = resolveMemberSerial(yc.year, ser, rawName);
-      if (!memberSerial || !membersBySerial.has(memberSerial)) continue;
-
-      if (!memberMonthlyAmounts.has(memberSerial)) {
-        memberMonthlyAmounts.set(memberSerial, new Map());
-      }
-      const monthMap = memberMonthlyAmounts.get(memberSerial)!;
-
       for (let mIdx = yc.startM; mIdx <= yc.endM; mIdx++) {
         const colNum = yc.startCol + (mIdx - yc.startM);
         let cellVal = row.getCell(colNum).value;
@@ -670,6 +688,15 @@ async function main() {
           cellVal = (cellVal as any).result;
         }
         const cellAmount = Number(cellVal) || 0;
+        if (cellAmount === 0) continue;
+
+        const memberSerial = resolveMemberSerial(yc.year, mIdx, ser, rawName);
+        if (!memberSerial || !membersBySerial.has(memberSerial)) continue;
+
+        if (!memberMonthlyAmounts.has(memberSerial)) {
+          memberMonthlyAmounts.set(memberSerial, new Map());
+        }
+        const monthMap = memberMonthlyAmounts.get(memberSerial)!;
         const key = `${yc.year}-${String(mIdx + 1).padStart(2, "0")}`;
         monthMap.set(key, cellAmount);
       }
@@ -683,9 +710,16 @@ async function main() {
     const member = membersBySerial.get(memberSerial)!;
 
     // Filter all calendar months from member's currentJoinDate through Dec 2026
-    const memberMonths = allCalendarMonths.filter(
+    let memberMonths = allCalendarMonths.filter(
       m => m.date.getTime() >= member.currentJoinDate.getTime()
     );
+
+    // If member has removedDate (deceased / former member), cap dues up to removedDate
+    if (member.removedDate) {
+      memberMonths = memberMonths.filter(
+        m => m.date.getTime() <= member.removedDate!.getTime()
+      );
+    }
 
     // First 3 active months require 1,000 PKR / month (wasDoubleFee: true)
     // Only genuinely new joins pay 2x for first 3 months; successors / rejoins do not.
@@ -989,25 +1023,47 @@ async function main() {
 
     // 6. FundPayouts
     console.log("6/7 Writing Welfare Disbursements (FundPayout)...");
+
+    // Authoritative mapping from Acct sheet row to verified member serial
+    const payoutRowToSerial: Record<number, string> = {
+      9: "FIC-0023",   // Paid to Tazarab Hussain on his mother Death
+      17: "HIS-0071",  // Paid to family of Altaf Hussain Kiani on his death
+      19: "FIC-0022",  // Paid to Javid Kiani of Krl on death of his mother
+      29: "FIC-0058",  // Paid to Asghar Kiani of Sgn on death of his mother
+      32: "HIS-0062",  // Paid to family of M. Akhtar Kiani on his death
+      33: "FIC-0038",  // Paid to Rashid Hussain of Dptn on death of his mother
+      44: "HIS-0002",  // Paid to family of Qari Asad Kiani on his death
+      50: "FIC-0036",  // Paid to Nazir Ahmed Kiani of Jabbi on death of his Son
+      53: "FIC-0035",  // Paid to family of Zafar Kiani on his death
+      70: "FIC-0124",  // Paid to Asif Ayub of Digal on death of his Father
+      71: "FIC-0081",  // Paid to Zaheed Akhtar of Kotli on death of his Son
+      74: "FIC-0047",  // Paid to Aamer Hussain Kiani on death of his Anti
+      85: "FIC-0122",  // Paid to Fawad Rashid Kiani on death of his Father
+      86: "FIC-0100",  // Paid to Navid Ahmed Kiani on death of his mother
+      89: "FIC-0087",  // Paid to Nafees Ahmed on death of his mother
+      98: "HIS-0007",  // Paid to family of M Riaz Kiani on his death
+      104: "FIC-0122", // Paid to widow of M. Rashid kiani for Doughter marriage
+      115: "FIC-0145", // Paid to M. Shuaib on death of his Father
+      119: "FIC-0162", // Paid to Hafiz Ubaid Ullah on death of his Mother
+      123: "FIC-0080", // Paid to M. Dilnawaz of Kotli on death of his Mother
+      133: "HIS-0125", // Paid to brother of Pervaiz on his death
+      134: "FIC-0063", // Paid to Qamar Shahzad on death of his Father
+      137: "FIC-0105", // Paid to Khalid Pervaiz on death of his Mother
+      138: "FIC-0173", // Paid to Zahid Rafiq on death of his Father
+      143: "FIC-0179", // Paid to Manazar Hussain s/o Younis of Narr
+      144: "FIC-0045", // Paid to Naveed Kiani of Dhmyal on death of his Father
+      147: "FIC-0035", // Paid to Tayba Zafar on her marriage
+      148: "FIC-0160", // Paid to Ibrat Hussain on death of his Mother
+      151: "FIC-0017", // Paid to family of Munir Ahmed of Biaga on his death
+    };
+
     for (const pay of payoutList) {
-      let matchedMemberId: string | undefined;
-      const lower = pay.memberName.toLowerCase();
+      const serial = payoutRowToSerial[pay.rowNum];
+      const matchedMemberId = serial ? serialToId.get(serial) : undefined;
 
-      if (lower.includes("altaf hussain")) matchedMemberId = serialToId.get("HIS-0071");
-      else if (lower.includes("qari asad")) matchedMemberId = serialToId.get("HIS-0002");
-      else if (lower.includes("m riaz kiani") || lower.includes("m. riaz")) matchedMemberId = serialToId.get("HIS-0007");
-      else if (lower.includes("akhtar kiani")) matchedMemberId = serialToId.get("HIS-0062");
-      else {
-        for (const [s, id] of serialToId.entries()) {
-          const m = membersBySerial.get(s);
-          if (m && lower.includes(m.name.toLowerCase())) {
-            matchedMemberId = id;
-            break;
-          }
-        }
+      if (!matchedMemberId) {
+        throw new Error(`Unmapped payout at Acct row ${pay.rowNum}: "${pay.reason}"`);
       }
-
-      if (!matchedMemberId) matchedMemberId = serialToId.get("FIC-0007")!;
 
       await tx.fundPayout.create({
         data: {
