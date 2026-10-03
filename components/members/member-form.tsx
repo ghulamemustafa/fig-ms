@@ -135,7 +135,7 @@ export function MemberForm({
           </Field>
 
           <Field label={t("fields.serialNo")} error={errors.serialNo?.message}>
-            <Input {...register("serialNo")} />
+            <Input placeholder="FIC-0001" {...register("serialNo")} />
           </Field>
 
           <Field label={t("fields.mobile")} error={errors.mobile?.message}>

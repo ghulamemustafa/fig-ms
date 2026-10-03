@@ -36,10 +36,12 @@ type FormOutput = z.output<typeof succeedMemberSchema>;
 export function SuccessionDialog({
   memberId,
   memberName,
+  memberSerialNo,
   dependents,
 }: {
   memberId: string;
   memberName: string;
+  memberSerialNo?: string;
   dependents: { id: string; name: string; relation: string }[];
 }) {
   const t = useTranslations("succession");
@@ -53,6 +55,11 @@ export function SuccessionDialog({
   );
 
   const today = new Date().toISOString().slice(0, 10);
+  const defaultSerial = memberSerialNo
+    ? memberSerialNo.startsWith("FIC-")
+      ? memberSerialNo
+      : `FIC-${memberSerialNo.replace(/\D/g, "").padStart(4, "0")}`
+    : "";
 
   const {
     register,
@@ -68,7 +75,7 @@ export function SuccessionDialog({
       dependentId: dependents[0]?.id,
       fatherName: memberName,
       cnic: "",
-      serialNo: "",
+      serialNo: defaultSerial,
       mobile: "",
       address: "",
       income: 0,
@@ -255,7 +262,7 @@ export function SuccessionDialog({
                 </div>
                 <div className="space-y-1.5">
                   <Label>{tForm("fields.serialNo")}</Label>
-                  <Input {...register("serialNo")} />
+                  <Input placeholder="FIC-0001" {...register("serialNo")} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>{tForm("fields.mobile")}</Label>

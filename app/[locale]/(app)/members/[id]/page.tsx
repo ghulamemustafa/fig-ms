@@ -101,6 +101,7 @@ function MemberDetailContent({
             <SuccessionDialog
               memberId={member.id}
               memberName={member.name}
+              memberSerialNo={member.serialNo}
               dependents={member.dependents.map((d) => ({
                 id: d.id,
                 name: d.name,

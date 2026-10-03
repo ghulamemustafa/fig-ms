@@ -1,19 +1,31 @@
 import "dotenv/config";
-import path from "node:path";
 import ExcelJS from "exceljs";
 import { prisma } from "../lib/prisma";
 import { Prisma } from "../lib/generated/prisma/client";
 
-// Flags:
-// npx tsx scripts/import-historical-data.ts          # Dry run by default
-// npx tsx scripts/import-historical-data.ts --apply  # Commit to Postgres
+// Ensure DATABASE_URL is available
+if (!process.env.DATABASE_URL) {
+  console.error("❌ ERROR: DATABASE_URL is not set in environment.");
+  process.exit(1);
+}
 
 const isApply = process.argv.includes("--apply");
-const WORKBOOK_PATH = path.resolve(__dirname, "../fig-accounts.xlsx");
 
-// Date helpers
-function startOfDayUTC(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
+function cleanPhone(val: any): string {
+  if (!val) return "0000000000";
+  const str = String(val).replace(/\D/g, "");
+  if (str.length === 10 && str.startsWith("3")) return "0" + str;
+  if (str.length === 11 && str.startsWith("03")) return str;
+  return str.padStart(11, "0").slice(0, 11);
+}
+
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function startOfMonthUTC(year: number, monthIndex: number): Date {
@@ -24,47 +36,56 @@ function dueDateForMonth(year: number, monthIndex: number): Date {
   return new Date(Date.UTC(year, monthIndex, 15));
 }
 
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+interface CalendarMonth {
+  year: number;
+  monthIndex: number; // 0-11
+  key: string;        // "YYYY-MM"
+  date: Date;
 }
 
-function cleanPhone(raw: any): string {
-  if (!raw) return "0000000000";
-  let s = String(raw).replace(/\D/g, "");
-  if (s.length === 10) s = "0" + s;
-  if (s.length < 10) return "0000000000";
-  return s;
+// Generate all calendar months from Sep 2022 to Dec 2026
+const allCalendarMonths: CalendarMonth[] = [];
+for (let m = 8; m <= 11; m++) {
+  allCalendarMonths.push({
+    year: 2022,
+    monthIndex: m,
+    key: `2022-${String(m + 1).padStart(2, "0")}`,
+    date: startOfMonthUTC(2022, m),
+  });
 }
-
-const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-];
+for (let y = 2023; y <= 2026; y++) {
+  for (let m = 0; m <= 11; m++) {
+    allCalendarMonths.push({
+      year: y,
+      monthIndex: m,
+      key: `${y}-${String(m + 1).padStart(2, "0")}`,
+      date: startOfMonthUTC(y, m),
+    });
+  }
+}
 
 async function main() {
   console.log("=========================================================");
-  console.log(`🚀 FWCMS Complete Historical Migration Engine`);
-  console.log(`Target: PostgreSQL via Prisma ORM`);
-  console.log(`Execution Mode: ${isApply ? "💾 APPLY (Live Database Writes)" : "🔍 DRY RUN (Simulation Only)"}`);
+  console.log("🚀 HISTORICAL DATA IMPORT & RECONCILIATION ENGINE");
+  console.log(`Mode: ${isApply ? "🔴 APPLY (Will commit to PostgreSQL)" : "🟡 DRY RUN (Validation only)"}`);
   console.log("=========================================================\n");
 
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(WORKBOOK_PATH);
+  await wb.xlsx.readFile("fig-accounts.xlsx");
 
-  const adminUser = await prisma.user.findFirst({ where: { role: "admin" } });
+  // Fetch admin user to attribute records
+  const adminUser = await prisma.user.findFirst({
+    where: { role: "admin" },
+  });
   if (!adminUser) {
     throw new Error("No admin user found in database. Please run npm run db:bootstrap first.");
   }
   console.log(`Attributing system actions to Admin: ${adminUser.email} (${adminUser.id})\n`);
 
   // -------------------------------------------------------------
-  // 1. EXTRACT 2026 MEMBERS (CANONICAL 213 RECORDS)
+  // 1. EXTRACT 2026 MEMBERS WITH MASK (FIC-#### / HIS-####)
   // -------------------------------------------------------------
-  console.log("--- Phase 1: Parsing Sheet 2026 Core Members ---");
+  console.log("--- Phase 1: Parsing Sheet 2026 Core Members with Masks ---");
   const ws2026 = wb.getWorksheet("2026")!;
 
   interface ParsedMember {
@@ -91,10 +112,12 @@ async function main() {
 
   for (let r = 3; r <= ws2026.rowCount; r++) {
     const row = ws2026.getRow(r);
-    const serVal = row.getCell(1).value;
-    if (typeof serVal !== "number") continue;
+    const rawSer = row.getCell(1).value;
+    const serVal = Number(rawSer);
+    if (isNaN(serVal) || serVal <= 0) continue;
 
     const rawName = String(row.getCell(2).value || "").trim();
+    if (!rawName) continue;
     const rawFather = String(row.getCell(3).value || "").trim();
     let rawAddress = String(row.getCell(4).value || "").trim();
     if (!rawAddress || rawAddress === '"' || rawAddress === '""') {
@@ -103,8 +126,6 @@ async function main() {
       lastAddress = rawAddress;
     }
     const mobile = cleanPhone(row.getCell(5).value);
-    const serialNo = String(serVal);
-    const cnic = String(serVal).padStart(13, "0");
 
     let status = "active";
     let maritalStatus: "single" | "married" | "widowed" | "divorced" = "married";
@@ -114,6 +135,10 @@ async function main() {
     if (rawName.toLowerCase().includes("w/o") || rawName.toLowerCase().includes("bibi")) {
       maritalStatus = "widowed";
     }
+
+    const prefix = status === "deceased" ? "HIS" : "FIC";
+    const serialNo = `${prefix}-${String(serVal).padStart(4, "0")}`;
+    const cnic = String(serVal).padStart(13, "0");
 
     membersBySerial.set(serialNo, {
       serialNo,
@@ -127,8 +152,8 @@ async function main() {
       maritalStatus,
       occupation: "Welfare Member",
       income: 0,
-      originalJoinDate: new Date(Date.UTC(2026, 0, 1)), // backfilled below
-      currentJoinDate: new Date(Date.UTC(2026, 0, 1)),  // backfilled below
+      originalJoinDate: new Date(Date.UTC(2026, 0, 1)), // backfilled in Phase 3
+      currentJoinDate: new Date(Date.UTC(2026, 0, 1)),  // backfilled in Phase 3
       status,
     });
   }
@@ -141,7 +166,7 @@ async function main() {
   const historicalMembers: ParsedMember[] = [
     // Predecessor of Ser 2 (Ahsan Asad Kiani)
     {
-      serialNo: "HIST-002",
+      serialNo: "HIS-0002",
       ser: 7000,
       name: "Qari Asad Mehmood Kiani",
       fatherName: "M. Hanif",
@@ -160,7 +185,7 @@ async function main() {
     },
     // Predecessor of Ser 7 (Muhammad Fayyaz Kiani)
     {
-      serialNo: "HIST-007",
+      serialNo: "HIS-0007",
       ser: 7001,
       name: "Muhammad Riaz Kiani",
       fatherName: "Mir Abdul",
@@ -179,7 +204,7 @@ async function main() {
     },
     // Predecessor of Ser 62 (Saghira Bi Bi W/O)
     {
-      serialNo: "HIST-062",
+      serialNo: "HIS-0062",
       ser: 7002,
       name: "Muhammad Akhtar Kiani",
       fatherName: "Habib Ullah",
@@ -198,7 +223,7 @@ async function main() {
     },
     // Predecessor of Ser 142 (Waheeda Bibi)
     {
-      serialNo: "HIST-142",
+      serialNo: "HIS-0142",
       ser: 7003,
       name: "Abdul Rehman (Pappu)",
       fatherName: "Muhammad Hussain",
@@ -217,7 +242,7 @@ async function main() {
     },
     // Predecessor of Ser 149 (Khuram Shahzad)
     {
-      serialNo: "HIST-149",
+      serialNo: "HIS-0149",
       ser: 7004,
       name: "Fazal Kareem",
       fatherName: "Muhammad Ayub",
@@ -236,7 +261,7 @@ async function main() {
     },
     // Altaf Hussain Kiani (died May 2023)
     {
-      serialNo: "HIST-071",
+      serialNo: "HIS-0071",
       ser: 7005,
       name: "Altaf Hussain Kiani",
       fatherName: "Naik Muhammad",
@@ -255,7 +280,7 @@ async function main() {
     },
     // Adnan Kiani (2022/2023 Ser 14)
     {
-      serialNo: "HIST-014",
+      serialNo: "FIC-0014",
       ser: 7006,
       name: "Adnan Kiani",
       fatherName: "Abdul Rauf",
@@ -274,7 +299,7 @@ async function main() {
     },
     // Nasir Ali (2022/2023 Ser 42)
     {
-      serialNo: "HIST-042",
+      serialNo: "FIC-0042",
       ser: 7007,
       name: "Nasir Ali",
       fatherName: "Haji Zulfiqar Ali",
@@ -293,7 +318,7 @@ async function main() {
     },
     // Basharat Ali (2022/2023 Ser 46)
     {
-      serialNo: "HIST-046",
+      serialNo: "FIC-0046",
       ser: 7008,
       name: "Basharat Ali",
       fatherName: "Muhammad Afsar",
@@ -315,46 +340,47 @@ async function main() {
   historicalMembers.forEach(hm => membersBySerial.set(hm.serialNo, hm));
   console.log(`✔ Integrated ${historicalMembers.length} predecessors & former members (Total: ${membersBySerial.size}).`);
 
-  // Build name resolution lookup
+  // Build name resolution lookup for 2022-2023
   const nameToSerial = new Map<string, string>();
   membersBySerial.forEach((m, s) => {
     nameToSerial.set(normalize(m.name), s);
   });
 
-  // Explicit mappings for historical discrepancies:
   const historicalResolutions: Record<string, string> = {
-    [normalize("Qari Asad Mehmood Kiani")]: "HIST-002",
-    [normalize("Muhammad Riaz Kiani")]: "HIST-007",
-    [normalize("Muhammad Akhtar Kiani")]: "HIST-062",
-    [normalize("Abdul Rehman (Pappu)")]: "HIST-142",
-    [normalize("Fazal Kareem")]: "HIST-149",
-    [normalize("Altaf Hussain Kiani")]: "HIST-071",
-    [normalize("Adnan Kiani")]: "HIST-014",
-    [normalize("Nasir Ali")]: "HIST-042",
-    [normalize("Basharat Ali")]: "HIST-046",
+    [normalize("Qari Asad Mehmood Kiani")]: "HIS-0002",
+    [normalize("Muhammad Riaz Kiani")]: "HIS-0007",
+    [normalize("Muhammad Akhtar Kiani")]: "HIS-0062",
+    [normalize("Abdul Rehman (Pappu)")]: "HIS-0142",
+    [normalize("Fazal Kareem")]: "HIS-0149",
+    [normalize("Altaf Hussain Kiani")]: "HIS-0071",
+    [normalize("Adnan Kiani")]: "FIC-0014",
+    [normalize("Nasir Ali")]: "FIC-0042",
+    [normalize("Basharat Ali")]: "FIC-0046",
   };
 
+  /**
+   * Resolves row to canonical serialNo.
+   * Sheets 2024-2026 are evaluated by authoritative serial column FIRST.
+   * Name lookup is strictly applied for 2022-2023, avoiding name collision on Ser 103!
+   */
   function resolveMemberSerial(year: number, ser: number, rawName: string): string | undefined {
-    const norm = normalize(rawName);
-
-    // Explicit overrides
-    if (historicalResolutions[norm]) {
-      return historicalResolutions[norm];
-    }
-
     if (year >= 2024) {
-      if ((year === 2024 || year === 2025) && ser === 7) return "HIST-007";
-      if ((year === 2024 || year === 2025) && ser === 62) return "HIST-062";
-      if (year === 2025 && ser === 142) return "HIST-142";
-      if (year === 2025 && ser === 149) return "HIST-149";
-      return String(ser);
+      if ((year === 2024 || year === 2025) && ser === 7) return "HIS-0007";
+      if ((year === 2024 || year === 2025) && ser === 62) return "HIS-0062";
+      if (year === 2025 && ser === 142) return "HIS-0142";
+      if (year === 2025 && ser === 149) return "HIS-0149";
+      if (ser === 125) return "HIS-0125";
+      return `FIC-${String(ser).padStart(4, "0")}`;
     }
 
     // 2022 and 2023
+    const norm = normalize(rawName);
+    if (historicalResolutions[norm]) {
+      return historicalResolutions[norm];
+    }
     if (nameToSerial.has(norm)) {
       return nameToSerial.get(norm);
     }
-    // Fuzzy search
     for (const [nameKey, serial] of nameToSerial.entries()) {
       if (nameKey.includes(norm) || norm.includes(nameKey)) {
         return serial;
@@ -364,96 +390,79 @@ async function main() {
   }
 
   // -------------------------------------------------------------
-  // 3. BACKFILL TRUE JOIN DATES
+  // 3. BACKFILL TRUE JOIN DATES (DETECTING MID-YEAR JOIN MONTHS)
   // -------------------------------------------------------------
   console.log("\n--- Phase 3: Backfilling True Join Dates ---");
 
-  // Scan 2022
-  const ws2022 = wb.getWorksheet("2022")!;
-  for (let r = 3; r <= ws2022.rowCount; r++) {
-    const ser = ws2022.getRow(r).getCell(1).value;
-    if (typeof ser !== "number") continue;
-    const name = String(ws2022.getRow(r).getCell(2).value || "").trim();
-    const s = resolveMemberSerial(2022, ser, name);
-    if (s && membersBySerial.has(s)) {
-      const m = membersBySerial.get(s)!;
-      m.originalJoinDate = new Date(Date.UTC(2022, 8, 1));
-      m.currentJoinDate = new Date(Date.UTC(2022, 8, 1));
-    }
-  }
+  const scanYears = [
+    { name: "2022", year: 2022, startM: 8, endM: 11, startCol: 6 },
+    { name: "2023", year: 2023, startM: 0, endM: 11, startCol: 6 },
+    { name: "2024", year: 2024, startM: 0, endM: 11, startCol: 6 },
+    { name: "2025", year: 2025, startM: 0, endM: 11, startCol: 6 },
+    { name: "2026", year: 2026, startM: 0, endM: 11, startCol: 6 },
+  ];
 
-  // Scan 2023
-  const ws2023 = wb.getWorksheet("2023")!;
-  for (let r = 3; r <= ws2023.rowCount; r++) {
-    const ser = ws2023.getRow(r).getCell(1).value;
-    if (typeof ser !== "number") continue;
-    const name = String(ws2023.getRow(r).getCell(2).value || "").trim();
-    const s = resolveMemberSerial(2023, ser, name);
-    if (s && membersBySerial.has(s)) {
+  for (const sy of scanYears) {
+    const ws = wb.getWorksheet(sy.name)!;
+    for (let r = 3; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      const ser = row.getCell(1).value;
+      if (typeof ser !== "number") continue;
+      const name = String(row.getCell(2).value || "").trim();
+      const s = resolveMemberSerial(sy.year, ser, name);
+      if (!s || !membersBySerial.has(s)) continue;
+
       const m = membersBySerial.get(s)!;
-      if (m.originalJoinDate.getUTCFullYear() > 2023) {
-        m.originalJoinDate = new Date(Date.UTC(2023, 0, 1));
-        m.currentJoinDate = new Date(Date.UTC(2023, 0, 1));
+
+      // Find first non-zero payment month in this sheet
+      let firstMonthIdx = sy.startM;
+      for (let c = sy.startCol; c <= sy.startCol + (sy.endM - sy.startM); c++) {
+        let val = row.getCell(c).value;
+        if (val && typeof val === "object" && "result" in val) val = (val as any).result;
+        if (Number(val) > 0) {
+          firstMonthIdx = sy.startM + (c - sy.startCol);
+          break;
+        }
       }
-    }
-  }
 
-  // Scan 2024
-  const ws2024 = wb.getWorksheet("2024")!;
-  for (let r = 3; r <= ws2024.rowCount; r++) {
-    const ser = ws2024.getRow(r).getCell(1).value;
-    if (typeof ser !== "number") continue;
-    const name = String(ws2024.getRow(r).getCell(2).value || "").trim();
-    const s = resolveMemberSerial(2024, ser, name);
-    if (s && membersBySerial.has(s)) {
-      const m = membersBySerial.get(s)!;
-      if (m.originalJoinDate.getUTCFullYear() > 2024) {
-        m.originalJoinDate = new Date(Date.UTC(2024, 0, 1));
-        m.currentJoinDate = new Date(Date.UTC(2024, 0, 1));
-      }
-    }
-  }
-
-  // Scan 2025
-  const ws2025 = wb.getWorksheet("2025")!;
-  for (let r = 3; r <= ws2025.rowCount; r++) {
-    const ser = ws2025.getRow(r).getCell(1).value;
-    if (typeof ser !== "number") continue;
-    const name = String(ws2025.getRow(r).getCell(2).value || "").trim();
-    const s = resolveMemberSerial(2025, ser, name);
-    if (s && membersBySerial.has(s)) {
-      const m = membersBySerial.get(s)!;
-      if (m.originalJoinDate.getUTCFullYear() > 2025) {
-        m.originalJoinDate = new Date(Date.UTC(2025, 0, 1));
-        m.currentJoinDate = new Date(Date.UTC(2025, 0, 1));
+      const detectedJoinDate = startOfMonthUTC(sy.year, firstMonthIdx);
+      if (detectedJoinDate.getTime() < m.originalJoinDate.getTime()) {
+        m.originalJoinDate = detectedJoinDate;
+        m.currentJoinDate = detectedJoinDate;
       }
     }
   }
 
   // Successor join-date inheritance:
   // Ser 2 (Ahsan Asad Kiani) inherits 2022-09-01 from Qari Asad
-  const ser2 = membersBySerial.get("2");
+  const ser2 = membersBySerial.get("FIC-0002");
   if (ser2) {
     ser2.originalJoinDate = new Date(Date.UTC(2022, 8, 1));
     ser2.currentJoinDate = new Date(Date.UTC(2024, 3, 7));
   }
   // Ser 7 (Muhammad Fayyaz Kiani) inherits 2022-09-01 from Muhammad Riaz Kiani
-  const ser7 = membersBySerial.get("7");
+  const ser7 = membersBySerial.get("FIC-0007");
   if (ser7) {
     ser7.originalJoinDate = new Date(Date.UTC(2022, 8, 1));
     ser7.currentJoinDate = new Date(Date.UTC(2025, 8, 19));
   }
   // Ser 62 (Saghira Bi Bi) inherits 2022-09-01 from Muhammad Akhtar Kiani
-  const ser62 = membersBySerial.get("62");
+  const ser62 = membersBySerial.get("FIC-0062");
   if (ser62) {
     ser62.originalJoinDate = new Date(Date.UTC(2022, 8, 1));
     ser62.currentJoinDate = new Date(Date.UTC(2023, 10, 2));
   }
   // Ser 142 (Waheeda Bibi) inherits 2025-01-01 from Abdul Rehman
-  const ser142 = membersBySerial.get("142");
+  const ser142 = membersBySerial.get("FIC-0142");
   if (ser142) {
     ser142.originalJoinDate = new Date(Date.UTC(2025, 0, 1));
     ser142.currentJoinDate = new Date(Date.UTC(2026, 0, 1));
+  }
+  // Ser 149 (Khuram Shahzad) inherits 2025-03-01 from Fazal Kareem
+  const ser149 = membersBySerial.get("FIC-0149");
+  if (ser149) {
+    ser149.originalJoinDate = new Date(Date.UTC(2025, 2, 1));
+    ser149.currentJoinDate = new Date(Date.UTC(2026, 0, 1));
   }
 
   const joinDist: Record<number, number> = {};
@@ -464,9 +473,9 @@ async function main() {
   console.log("✔ Join year distribution:", joinDist);
 
   // -------------------------------------------------------------
-  // 4. PARSE INFLOWS (BANK PROFIT & DONATIONS) FROM ACCT
+  // 4. PARSE INFLOWS & OUTFLOWS FROM 'ACCT' SHEET
   // -------------------------------------------------------------
-  console.log("\n--- Phase 4: Extracting Inflows from 'Acct' Sheet ---");
+  console.log("\n--- Phase 4: Extracting Inflows & Outflows from 'Acct' Sheet ---");
   const wsAcct = wb.getWorksheet("Acct")!;
 
   interface ParsedIncome {
@@ -490,7 +499,6 @@ async function main() {
   interface ParsedPayout {
     date: Date;
     memberName: string;
-    matchedSerial?: string;
     amount: number;
     reason: string;
     payoutType: "funeral" | "widow" | "other";
@@ -512,7 +520,6 @@ async function main() {
 
     if (!desc) continue;
 
-    // Date resolution with ditto propagation
     if (dateVal instanceof Date) {
       lastAcctDate = dateVal;
     } else if (typeof dateVal === "string" && dateVal.trim() !== '"' && dateVal.trim() !== '""') {
@@ -543,7 +550,6 @@ async function main() {
           description: desc,
         });
       } else if (!lower.startsWith("fund rec")) {
-        // Any non-fund-received inflow is a community donation
         let donor = "General / Community Donor";
         if (lower.includes("razzaq kiani")) donor = "Razzaq Kiani of Gori Town";
         else if (lower.includes("javid kiani")) donor = "Javid Kiani of KRL";
@@ -597,7 +603,6 @@ async function main() {
           description: desc,
         });
       } else {
-        // Member-specific welfare disbursement
         let pType: "funeral" | "widow" | "other" = "funeral";
         if (lower.includes("marriage")) pType = "other";
         else if (lower.includes("medical")) pType = "other";
@@ -619,7 +624,7 @@ async function main() {
   console.log(`✔ Extracted ${payoutList.length} Member Welfare Disbursements (Total: ${payoutList.reduce((s, p) => s + p.amount, 0).toLocaleString()} PKR).`);
 
   // -------------------------------------------------------------
-  // 5. PARSE PAYMENTS & MEMBER EXCESS CONTRIBUTIONS
+  // 5. PARSE PAYMENTS & MEMBER EXCESS CONTRIBUTIONS (UNIFIED LEDGER)
   // -------------------------------------------------------------
   console.log("\n--- Phase 5: Processing Monthly Dues Matrix (2022-2026) ---");
 
@@ -641,21 +646,11 @@ async function main() {
     notes: string;
   }
 
-  const paymentList: ParsedPayment[] = [];
-  const memberDonations: MemberDonation[] = [];
+  // Pre-load sheet cell amounts per member: memberSerial -> Map<monthKey, amount>
+  const memberMonthlyAmounts = new Map<string, Map<string, number>>();
 
-  const yearConfigs = [
-    { name: "2022", year: 2022, startMonth: 8, endMonth: 11, startCol: 6 }, // Sep-Dec
-    { name: "2023", year: 2023, startMonth: 0, endMonth: 11, startCol: 6 }, // Jan-Dec
-    { name: "2024", year: 2024, startMonth: 0, endMonth: 11, startCol: 6 }, // Jan-Dec
-    { name: "2025", year: 2025, startMonth: 0, endMonth: 11, startCol: 6 }, // Jan-Dec
-    { name: "2026", year: 2026, startMonth: 0, endMonth: 11, startCol: 6 }, // Jan-Dec
-  ];
-
-  for (const yc of yearConfigs) {
+  for (const yc of scanYears) {
     const ws = wb.getWorksheet(yc.name)!;
-    let yearMemberSum = 0;
-
     for (let r = 3; r <= ws.rowCount; r++) {
       const row = ws.getRow(r);
       const ser = row.getCell(1).value;
@@ -663,66 +658,142 @@ async function main() {
       const rawName = String(row.getCell(2).value || "").trim();
 
       const memberSerial = resolveMemberSerial(yc.year, ser, rawName);
-      if (!memberSerial || !membersBySerial.has(memberSerial)) {
-        console.warn(`[WARN] Could not map member in ${yc.year} row ${r}: Ser ${ser} "${rawName}"`);
-        continue;
-      }
-      const member = membersBySerial.get(memberSerial)!;
+      if (!memberSerial || !membersBySerial.has(memberSerial)) continue;
 
-      for (let mIdx = yc.startMonth; mIdx <= yc.endMonth; mIdx++) {
-        const colNum = yc.startCol + (mIdx - yc.startMonth);
+      if (!memberMonthlyAmounts.has(memberSerial)) {
+        memberMonthlyAmounts.set(memberSerial, new Map());
+      }
+      const monthMap = memberMonthlyAmounts.get(memberSerial)!;
+
+      for (let mIdx = yc.startM; mIdx <= yc.endM; mIdx++) {
+        const colNum = yc.startCol + (mIdx - yc.startM);
         let cellVal = row.getCell(colNum).value;
         if (cellVal && typeof cellVal === "object" && "result" in cellVal) {
           cellVal = (cellVal as any).result;
         }
         const cellAmount = Number(cellVal) || 0;
-        if (cellAmount <= 0) continue;
-
-        yearMemberSum += cellAmount;
-        const monthCovered = startOfMonthUTC(yc.year, mIdx);
-        const dueDate = dueDateForMonth(yc.year, mIdx);
-        const paidDate = dueDate;
-        const receiptNo = `RCP-${yc.year}-${String(mIdx + 1).padStart(2, "0")}-${member.serialNo}`;
-
-        const is2022Double = yc.year === 2022 && mIdx < 11;
-        const requiredFee = is2022Double ? 1000 : 500;
-
-        if (cellAmount >= requiredFee) {
-          paymentList.push({
-            memberSerial: member.serialNo,
-            monthCovered,
-            amount: requiredFee,
-            wasDoubleFee: is2022Double,
-            paidDate,
-            dueDate,
-            receiptNo,
-          });
-
-          const excess = cellAmount - requiredFee;
-          if (excess > 0) {
-            memberDonations.push({
-              memberSerial: member.serialNo,
-              donorName: member.name,
-              donorContact: member.mobile,
-              amount: excess,
-              date: paidDate,
-              notes: `Monthly excess dues contribution for ${MONTH_NAMES[mIdx]} ${yc.year} (Paid ${cellAmount}, Fee ${requiredFee})`,
-            });
-          }
-        } else {
-          paymentList.push({
-            memberSerial: member.serialNo,
-            monthCovered,
-            amount: cellAmount,
-            wasDoubleFee: false,
-            paidDate,
-            dueDate,
-            receiptNo,
-          });
-        }
+        const key = `${yc.year}-${String(mIdx + 1).padStart(2, "0")}`;
+        monthMap.set(key, cellAmount);
       }
     }
-    console.log(`  ${yc.year}: Processed member collections totaling ${yearMemberSum.toLocaleString()} PKR.`);
+  }
+
+  const paymentList: ParsedPayment[] = [];
+  const memberDonations: MemberDonation[] = [];
+
+  for (const [memberSerial, monthMap] of memberMonthlyAmounts.entries()) {
+    const member = membersBySerial.get(memberSerial)!;
+
+    // Filter all calendar months from member's originalJoinDate through Dec 2026
+    const memberMonths = allCalendarMonths.filter(
+      m => m.date.getTime() >= member.originalJoinDate.getTime()
+    );
+
+    // First 3 active months require 1,000 PKR / month (wasDoubleFee: true)
+    const first3MonthKeys = new Set(memberMonths.slice(0, 3).map(m => m.key));
+    const paidMonths = new Set<string>();
+
+    for (let i = 0; i < memberMonths.length; i++) {
+      const m = memberMonths[i];
+      const cellAmount = monthMap.get(m.key) || 0;
+      if (cellAmount <= 0) continue;
+
+      let remaining = cellAmount;
+      const paidDate = dueDateForMonth(m.year, m.monthIndex);
+      const receiptNo = `RCP-${m.year}-${String(m.monthIndex + 1).padStart(2, "0")}-${member.serialNo}`;
+
+      // A. Condition 2: Clear past unpaid months (arrears) up to m
+      for (let p = 0; p < i; p++) {
+        const pastM = memberMonths[p];
+        if (!paidMonths.has(pastM.key)) {
+          const fee = first3MonthKeys.has(pastM.key) ? 1000 : 500;
+          if (remaining >= fee) {
+            paidMonths.add(pastM.key);
+            paymentList.push({
+              memberSerial,
+              monthCovered: pastM.date,
+              amount: fee,
+              wasDoubleFee: fee === 1000,
+              paidDate,
+              dueDate: dueDateForMonth(pastM.year, pastM.monthIndex),
+              receiptNo,
+            });
+            remaining -= fee;
+          }
+        }
+      }
+
+      // B. Cover current month m
+      if (!paidMonths.has(m.key)) {
+        const fee = first3MonthKeys.has(m.key) ? 1000 : 500;
+        if (remaining >= fee) {
+          paidMonths.add(m.key);
+          paymentList.push({
+            memberSerial,
+            monthCovered: m.date,
+            amount: fee,
+            wasDoubleFee: fee === 1000,
+            paidDate,
+            dueDate: dueDateForMonth(m.year, m.monthIndex),
+            receiptNo,
+          });
+          remaining -= fee;
+        } else if (remaining > 0) {
+          paidMonths.add(m.key);
+          paymentList.push({
+            memberSerial,
+            monthCovered: m.date,
+            amount: remaining,
+            wasDoubleFee: false,
+            paidDate,
+            dueDate: dueDateForMonth(m.year, m.monthIndex),
+            receiptNo,
+          });
+          remaining = 0;
+        }
+      }
+
+      // C. Prepay future months ONLY IF they have 0 / blank in spreadsheet (e.g. Ser 186/187)
+      if (remaining >= 500) {
+        for (let f = i + 1; f < memberMonths.length; f++) {
+          const futM = memberMonths[f];
+          const futRaw = monthMap.get(futM.key) || 0;
+          if (futRaw > 0) break; // Subsequent month has its own payment, do not roll forward
+
+          if (!paidMonths.has(futM.key)) {
+            const fee = first3MonthKeys.has(futM.key) ? 1000 : 500;
+            if (remaining >= fee) {
+              paidMonths.add(futM.key);
+              paymentList.push({
+                memberSerial,
+                monthCovered: futM.date,
+                amount: fee,
+                wasDoubleFee: fee === 1000,
+                paidDate,
+                dueDate: dueDateForMonth(futM.year, futM.monthIndex),
+                receiptNo,
+              });
+              remaining -= fee;
+            } else {
+              break;
+            }
+          }
+          if (remaining < 500) break;
+        }
+      }
+
+      // D. Any remaining excess is a Donation for month m
+      if (remaining > 0) {
+        memberDonations.push({
+          memberSerial,
+          donorName: member.name,
+          donorContact: member.mobile,
+          amount: remaining,
+          date: paidDate,
+          notes: `Voluntary excess contribution for ${MONTH_NAMES[m.monthIndex]} ${m.year}`,
+        });
+      }
+    }
   }
 
   console.log(`✔ Generated ${paymentList.length} monthly Payment records.`);
@@ -750,22 +821,34 @@ async function main() {
   expenseList.forEach(e => { outflowByYear[e.date.getUTCFullYear()] += e.amount; });
   payoutList.forEach(p => { outflowByYear[p.date.getUTCFullYear()] += p.amount; });
 
-  console.log("\nINFLOWS COMPARISON (Received):");
-  for (let c = 2; c <= 6; c++) {
-    const yr = 2020 + c;
-    const excelVal = Number((sRow2.getCell(c).value as any)?.result || sRow2.getCell(c).value) || 0;
-    const calcVal = inflowByYear[yr];
-    const diff = calcVal - excelVal;
-    console.log(`  ${yr}: Parsed=${calcVal.toLocaleString()} PKR | Excel=${excelVal.toLocaleString()} PKR | Diff=${diff}`);
+  function cellNum(cell: ExcelJS.Cell): number {
+    let val = cell.value;
+    if (val && typeof val === "object" && "result" in val) val = (val as any).result;
+    return Number(val) || 0;
   }
 
-  console.log("\nOUTFLOWS COMPARISON (Expended):");
-  for (let c = 2; c <= 6; c++) {
-    const yr = 2020 + c;
-    const excelVal = Number((sRow3.getCell(c).value as any)?.result || sRow3.getCell(c).value) || 0;
-    const calcVal = outflowByYear[yr];
-    console.log(`  ${yr}: Parsed=${calcVal.toLocaleString()} PKR | Excel=${excelVal.toLocaleString()} PKR`);
+  const years = [2022, 2023, 2024, 2025, 2026];
+  for (let idx = 0; idx < years.length; idx++) {
+    const yr = years[idx];
+    const excelIn = cellNum(sRow2.getCell(idx + 2));
+    const excelOut = cellNum(sRow3.getCell(idx + 2));
+    const parsedIn = inflowByYear[yr];
+    const parsedOut = outflowByYear[yr];
+
+    console.log(`\n📅 Year ${yr}:`);
+    console.log(`  Inflow:  Parsed ${parsedIn.toLocaleString()} PKR | Excel ${excelIn.toLocaleString()} PKR (Diff: ${(parsedIn - excelIn).toLocaleString()})`);
+    console.log(`  Outflow: Parsed ${parsedOut.toLocaleString()} PKR | Excel ${excelOut.toLocaleString()} PKR (Diff: ${(parsedOut - excelOut).toLocaleString()})`);
   }
+
+  const grandExcelIn = cellNum(sRow2.getCell(7));
+  const grandExcelOut = cellNum(sRow3.getCell(7));
+  const grandParsedIn = Object.values(inflowByYear).reduce((a, b) => a + b, 0);
+  const grandParsedOut = Object.values(outflowByYear).reduce((a, b) => a + b, 0);
+
+  console.log("\n---------------------------------------------------------");
+  console.log(`🏁 GRAND TOTAL INFLOW:  Parsed ${grandParsedIn.toLocaleString()} PKR | Excel ${grandExcelIn.toLocaleString()} PKR`);
+  console.log(`🏁 GRAND TOTAL OUTFLOW: Parsed ${grandParsedOut.toLocaleString()} PKR | Excel ${grandExcelOut.toLocaleString()} PKR`);
+  console.log("---------------------------------------------------------");
 
   // -------------------------------------------------------------
   // 7. DATABASE WRITE (IF --apply)
@@ -780,14 +863,24 @@ async function main() {
   console.log("=========================================================");
 
   await prisma.$transaction(async (tx) => {
+    // 0. Clean reset of previous historical import records
+    console.log("0/7 Cleaning previous imported transaction records...");
+    await tx.payment.deleteMany({});
+    await tx.donation.deleteMany({});
+    await tx.fundPayout.deleteMany({});
+    await tx.expense.deleteMany({});
+    await tx.otherIncome.deleteMany({});
+    await tx.dependent.deleteMany({});
+    await tx.member.updateMany({ data: { succeededById: null } });
+    await tx.member.deleteMany({});
+
     // 1. Members
     console.log("1/7 Writing members...");
     const serialToId = new Map<string, string>();
 
     for (const m of membersBySerial.values()) {
-      const created = await tx.member.upsert({
-        where: { serialNo: m.serialNo },
-        create: {
+      const created = await tx.member.create({
+        data: {
           serialNo: m.serialNo,
           name: m.name,
           fatherName: m.fatherName,
@@ -804,45 +897,40 @@ async function main() {
           removedDate: m.removedDate,
           removedReason: m.removedReason,
         },
-        update: {
-          name: m.name,
-          fatherName: m.fatherName,
-          address: m.address,
-          mobile: m.mobile,
-          originalJoinDate: m.originalJoinDate,
-          currentJoinDate: m.currentJoinDate,
-          status: m.status,
-          removedDate: m.removedDate,
-          removedReason: m.removedReason,
-        },
       });
       serialToId.set(m.serialNo, created.id);
     }
 
     // 2. Link Successions
     console.log("2/7 Linking successions...");
-    if (serialToId.has("HIST-002") && serialToId.has("2")) {
+    if (serialToId.has("HIS-0002") && serialToId.has("FIC-0002")) {
       await tx.member.update({
-        where: { serialNo: "HIST-002" },
-        data: { succeededById: serialToId.get("2") },
+        where: { serialNo: "HIS-0002" },
+        data: { succeededById: serialToId.get("FIC-0002") },
       });
     }
-    if (serialToId.has("HIST-007") && serialToId.has("7")) {
+    if (serialToId.has("HIS-0007") && serialToId.has("FIC-0007")) {
       await tx.member.update({
-        where: { serialNo: "HIST-007" },
-        data: { succeededById: serialToId.get("7") },
+        where: { serialNo: "HIS-0007" },
+        data: { succeededById: serialToId.get("FIC-0007") },
       });
     }
-    if (serialToId.has("HIST-062") && serialToId.has("62")) {
+    if (serialToId.has("HIS-0062") && serialToId.has("FIC-0062")) {
       await tx.member.update({
-        where: { serialNo: "HIST-062" },
-        data: { succeededById: serialToId.get("62") },
+        where: { serialNo: "HIS-0062" },
+        data: { succeededById: serialToId.get("FIC-0062") },
       });
     }
-    if (serialToId.has("HIST-142") && serialToId.has("142")) {
+    if (serialToId.has("HIS-0142") && serialToId.has("FIC-0142")) {
       await tx.member.update({
-        where: { serialNo: "HIST-142" },
-        data: { succeededById: serialToId.get("142") },
+        where: { serialNo: "HIS-0142" },
+        data: { succeededById: serialToId.get("FIC-0142") },
+      });
+    }
+    if (serialToId.has("HIS-0149") && serialToId.has("FIC-0149")) {
+      await tx.member.update({
+        where: { serialNo: "HIS-0149" },
+        data: { succeededById: serialToId.get("FIC-0149") },
       });
     }
 
@@ -903,11 +991,10 @@ async function main() {
       let matchedMemberId: string | undefined;
       const lower = pay.memberName.toLowerCase();
 
-      // Explicit pattern matches
-      if (lower.includes("altaf hussain")) matchedMemberId = serialToId.get("HIST-071");
-      else if (lower.includes("qari asad")) matchedMemberId = serialToId.get("HIST-002");
-      else if (lower.includes("m riaz kiani") || lower.includes("m. riaz")) matchedMemberId = serialToId.get("HIST-007");
-      else if (lower.includes("akhtar kiani")) matchedMemberId = serialToId.get("HIST-062");
+      if (lower.includes("altaf hussain")) matchedMemberId = serialToId.get("HIS-0071");
+      else if (lower.includes("qari asad")) matchedMemberId = serialToId.get("HIS-0002");
+      else if (lower.includes("m riaz kiani") || lower.includes("m. riaz")) matchedMemberId = serialToId.get("HIS-0007");
+      else if (lower.includes("akhtar kiani")) matchedMemberId = serialToId.get("HIS-0062");
       else {
         for (const [s, id] of serialToId.entries()) {
           const m = membersBySerial.get(s);
@@ -918,8 +1005,7 @@ async function main() {
         }
       }
 
-      // Default fallback if unlinked
-      if (!matchedMemberId) matchedMemberId = serialToId.get("7")!;
+      if (!matchedMemberId) matchedMemberId = serialToId.get("FIC-0007")!;
 
       await tx.fundPayout.create({
         data: {
@@ -959,7 +1045,7 @@ async function main() {
       });
     }
   }, {
-    timeout: 180000, // 3 minutes timeout for complete ingestion
+    timeout: 180000,
   });
 
   console.log("\n🎉 Database migration finished successfully!");

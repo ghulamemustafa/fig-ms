@@ -261,6 +261,18 @@ export async function succeedMember(
   return prisma.$transaction(async (tx) => {
     let successorId: string;
 
+    // Symmetrical mask rule: transition deceased member serialNo from FIC- to HIS- so successor can take FIC-
+    const deceasedHisSerial = deceased.serialNo.startsWith("FIC-")
+      ? `HIS-${deceased.serialNo.slice(4)}`
+      : deceased.serialNo;
+
+    if (deceasedHisSerial !== deceased.serialNo) {
+      await tx.member.update({
+        where: { id: deceasedId },
+        data: { serialNo: deceasedHisSerial },
+      });
+    }
+
     if (input.mode === "promoteDependent") {
       const dependent = await tx.dependent.findUnique({
         where: { id: input.dependentId },
