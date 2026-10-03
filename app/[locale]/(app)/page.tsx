@@ -268,7 +268,7 @@ function DashboardContent({
                 ))}
               </ul>
             )}
-            <Link href="/payouts" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+            <Link href="/payouts/history" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
               {t("recentPayouts.viewAll")}
               <ArrowRight className="size-3.5 rtl:rotate-180" />
             </Link>

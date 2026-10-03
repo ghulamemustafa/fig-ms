@@ -318,7 +318,52 @@
     "presidentQueueDescription": "آپ کی منظوری کے منتظر ادائیگیاں",
     "myRequestsTitle": "میری درخواستیں",
     "myRequestsDescription": "آپ کی درخواست کردہ ادائیگیاں",
+    "historyTitle": "فنڈ ادائیگیوں کی تاریخ",
+    "historyDescription": "تمام فنڈ ادائیگیوں اور منظوریوں کا مکمل ریکارڈ دیکھیں",
+    "allPayouts": "تمام ادائیگیاں",
     "noAccess": "آپ کے پاس ابھی کوئی فنڈ ادائیگی کا اختیار نہیں ہے۔"
+  },
+  "payoutListing": {
+    "title": "فنڈ ادائیگیوں کی تاریخ",
+    "subtitle": "تمام فنڈ ادائیگیوں، منظوریوں کے مراحل اور تقسیم کی تاریخوں کا مکمل ریکارڈ۔",
+    "requestPayout": "ادائیگی کی درخواست",
+    "searchPlaceholder": "رکن کا نام، شناختی کارڈ، سیریل نمبر یا وجہ تلاش کریں...",
+    "allStatuses": "تمام حالتیں",
+    "allTypes": "تمام اقسام",
+    "status": "حالت",
+    "type": "قسم",
+    "from": "از تاریخ",
+    "to": "تا تاریخ",
+    "resetFilters": "فلٹرز ختم کریں",
+    "kpi": {
+      "totalPayouts": "کل ادائیگیاں",
+      "totalDisbursed": "کل ادا شدہ رقم",
+      "totalPending": "زیر التوا منظوری",
+      "totalRejected": "مسترد شدہ",
+      "amount": "{amount}"
+    },
+    "table": {
+      "date": "تاریخ",
+      "member": "رکن",
+      "type": "قسم",
+      "amount": "رقم",
+      "status": "حالت",
+      "requestedBy": "درخواست دہندہ",
+      "workflow": "منظوری کی تفصیل",
+      "reason": "وجہ",
+      "paidDate": "ادائیگی کی تاریخ",
+      "actions": "اقدامات"
+    },
+    "workflow": {
+      "notRequired": "منظوری لازمی نہیں",
+      "vpApproved": "نائب صدر سے منظور ({name})",
+      "vpRejected": "نائب صدر سے مسترد: {reason}",
+      "presidentApproved": "صدر سے منظور ({name})",
+      "presidentRejected": "صدر سے مسترد: {reason}",
+      "paidOn": "{date} کو ادا شدہ"
+    },
+    "empty": "مطلوبہ معیار کے مطابق کوئی ادائیگی نہیں ملی۔",
+    "emptyAll": "ابھی تک کوئی فنڈ ادائیگی درج نہیں ہوئی۔"
   },
   "payoutStatus": {
     "requested": "درخواست دی گئی",
@@ -482,9 +527,10 @@
       "paidPayouts": "ادا شدہ فنڈ ادائیگیاں"
     },
     "trend": {
-      "title": "آمدنی بمقابلہ اخراجات (پچھلے 6 ماہ)",
+      "title": "آمدنی بمقابلہ اخراجات و ادائیگیاں (پچھلے 6 ماہ)",
       "income": "آمدنی",
-      "expense": "اخراجات"
+      "expense": "اخراجات",
+      "payout": "فنڈ ادائیگیاں"
     },
     "recentPayouts": {
       "title": "حالیہ فنڈ ادائیگیاں",

@@ -17,25 +17,150 @@ export class PayoutError extends Error {
 }
 
 const PAYOUT_INCLUDE = {
-  member: { select: { id: true, name: true, serialNo: true, status: true } },
+  member: { select: { id: true, name: true, serialNo: true, status: true, cnic: true } },
   requestedBy: { select: { id: true, name: true } },
   vpDecisionBy: { select: { id: true, name: true } },
   presDecisionBy: { select: { id: true, name: true } },
 } as const;
 
-export async function listPayouts(filters: {
+export type ListPayoutsFilters = {
   status?: string;
+  payoutType?: string;
   memberId?: string;
   requestedById?: string;
-}) {
+  search?: string;
+  from?: Date;
+  to?: Date;
+  page?: number;
+  pageSize?: number;
+};
+
+export function payoutsWhere(filters: ListPayoutsFilters = {}) {
+  const insensitive = { mode: "insensitive" as const };
+  const conditions: Record<string, unknown>[] = [];
+
+  if (filters.status && filters.status !== "all") {
+    conditions.push({ status: filters.status });
+  }
+
+  if (filters.payoutType && filters.payoutType !== "all") {
+    conditions.push({ payoutType: filters.payoutType });
+  }
+
+  if (filters.memberId) {
+    conditions.push({ memberId: filters.memberId });
+  }
+
+  if (filters.requestedById) {
+    conditions.push({ requestedById: filters.requestedById });
+  }
+
+  if (filters.from || filters.to) {
+    conditions.push({
+      createdAt: {
+        ...(filters.from ? { gte: filters.from } : {}),
+        ...(filters.to ? { lte: filters.to } : {}),
+      },
+    });
+  }
+
+  if (filters.search && filters.search.trim()) {
+    const s = filters.search.trim();
+    conditions.push({
+      OR: [
+        { member: { name: { contains: s, ...insensitive } } },
+        { member: { serialNo: { contains: s, ...insensitive } } },
+        { member: { cnic: { contains: s, ...insensitive } } },
+        { reason: { contains: s, ...insensitive } },
+        { requestedBy: { name: { contains: s, ...insensitive } } },
+      ],
+    });
+  }
+
+  if (conditions.length === 0) return {};
+  if (conditions.length === 1) return conditions[0];
+  return { AND: conditions };
+}
+
+export async function countPayouts(filters: Omit<ListPayoutsFilters, "page" | "pageSize"> = {}) {
+  return prisma.fundPayout.count({
+    where: payoutsWhere(filters),
+  });
+}
+
+export type PayoutsSummary = {
+  totalCount: number;
+  totalAmount: number;
+  paidCount: number;
+  paidAmount: number;
+  pendingCount: number;
+  pendingAmount: number;
+  rejectedCount: number;
+  rejectedAmount: number;
+};
+
+export async function getPayoutsSummary(
+  filters: Omit<ListPayoutsFilters, "page" | "pageSize"> = {}
+): Promise<PayoutsSummary> {
+  const where = payoutsWhere(filters);
+  const rows = await prisma.fundPayout.findMany({
+    where,
+    select: { amount: true, status: true },
+  });
+
+  let totalCount = 0;
+  let totalAmount = 0;
+  let paidCount = 0;
+  let paidAmount = 0;
+  let pendingCount = 0;
+  let pendingAmount = 0;
+  let rejectedCount = 0;
+  let rejectedAmount = 0;
+
+  for (const r of rows) {
+    const amt = Number(r.amount);
+    totalCount++;
+    totalAmount += amt;
+
+    if (r.status === "paid") {
+      paidCount++;
+      paidAmount += amt;
+    } else if (
+      r.status === "requested" ||
+      r.status === "vp_approved" ||
+      r.status === "president_approved"
+    ) {
+      pendingCount++;
+      pendingAmount += amt;
+    } else if (r.status === "vp_rejected" || r.status === "president_rejected") {
+      rejectedCount++;
+      rejectedAmount += amt;
+    }
+  }
+
+  return {
+    totalCount,
+    totalAmount,
+    paidCount,
+    paidAmount,
+    pendingCount,
+    pendingAmount,
+    rejectedCount,
+    rejectedAmount,
+  };
+}
+
+export async function listPayouts(filters: ListPayoutsFilters = {}) {
+  const where = payoutsWhere(filters);
+  const take = filters.pageSize;
+  const skip = filters.pageSize && filters.page ? (Math.max(1, filters.page) - 1) * filters.pageSize : undefined;
+
   return prisma.fundPayout.findMany({
-    where: {
-      ...(filters.status ? { status: filters.status } : {}),
-      ...(filters.memberId ? { memberId: filters.memberId } : {}),
-      ...(filters.requestedById ? { requestedById: filters.requestedById } : {}),
-    },
+    where,
     include: PAYOUT_INCLUDE,
-    orderBy: { id: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(take !== undefined ? { take } : {}),
+    ...(skip !== undefined ? { skip } : {}),
   });
 }
 

@@ -33,7 +33,7 @@ export type DashboardSummary = {
     paidPayoutsTotal: number;
     balance: number;
   };
-  trend: { month: string; income: number; expense: number }[];
+  trend: { month: string; income: number; expense: number; payout: number }[];
   recentPayouts: {
     id: string;
     memberId: string;
@@ -67,6 +67,7 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
     trendIncome,
     trendDonations,
     trendExpenses,
+    trendPayouts,
     recentPayouts,
     pendingVp,
     pendingPresident,
@@ -111,6 +112,10 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
       select: { date: true, amount: true },
     }),
     prisma.fundPayout.findMany({
+      where: { status: "paid", paidDate: { gte: trendStart, lt: nextMonthStart } },
+      select: { paidDate: true, amount: true },
+    }),
+    prisma.fundPayout.findMany({
       take: 5,
       orderBy: { id: "desc" },
       include: { member: { select: { id: true, name: true } } },
@@ -132,11 +137,11 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
   const paymentsTotal = Number(allPaymentsAgg._sum.amount ?? 0);
   const paidPayoutsTotal = Number(paidPayoutsAgg._sum.amount ?? 0);
 
-  const trendMap = new Map<string, { income: number; expense: number }>();
+  const trendMap = new Map<string, { income: number; expense: number; payout: number }>();
   for (let i = 0; i < TREND_MONTHS; i++) {
-    trendMap.set(monthKey(addMonthsUTC(trendStart, i)), { income: 0, expense: 0 });
+    trendMap.set(monthKey(addMonthsUTC(trendStart, i)), { income: 0, expense: 0, payout: 0 });
   }
-  const bucket = (date: Date, field: "income" | "expense", amount: unknown) => {
+  const bucket = (date: Date, field: "income" | "expense" | "payout", amount: unknown) => {
     const entry = trendMap.get(monthKey(date));
     if (entry) entry[field] += Number(amount);
   };
@@ -144,6 +149,9 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
   trendIncome.forEach((e) => bucket(e.date, "income", e.amount));
   trendDonations.forEach((e) => bucket(e.date, "income", e.amount));
   trendExpenses.forEach((e) => bucket(e.date, "expense", e.amount));
+  trendPayouts.forEach((p) => {
+    if (p.paidDate) bucket(p.paidDate, "payout", p.amount);
+  });
 
   return {
     asOf: asOf.toISOString(),

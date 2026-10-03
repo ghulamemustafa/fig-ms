@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
-export type TrendPoint = { month: string; income: number; expense: number };
+export type TrendPoint = { month: string; income: number; expense: number; payout: number };
 
 export function TrendChart({ data }: { data: TrendPoint[] }) {
   const t = useTranslations("dashboard");
@@ -47,6 +47,7 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="income" name={t("trend.income")} fill="var(--primary)" radius={[4, 4, 0, 0]} />
           <Bar dataKey="expense" name={t("trend.expense")} fill="oklch(0.72 0.1 27)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="payout" name={t("trend.payout")} fill="oklch(0.62 0.16 280)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

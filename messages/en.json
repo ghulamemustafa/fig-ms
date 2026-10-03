@@ -318,7 +318,52 @@
     "presidentQueueDescription": "Payouts awaiting your approval",
     "myRequestsTitle": "My Requests",
     "myRequestsDescription": "Payouts you've requested",
+    "historyTitle": "Payout History",
+    "historyDescription": "View and filter all payout requests and disbursement records",
+    "allPayouts": "All Payouts",
     "noAccess": "You don't have access to any payout actions yet."
+  },
+  "payoutListing": {
+    "title": "Payouts History",
+    "subtitle": "Complete record of all fund payouts, approval workflow states, and disbursement dates.",
+    "requestPayout": "Request Payout",
+    "searchPlaceholder": "Search by member name, CNIC, serial no, or reason...",
+    "allStatuses": "All Statuses",
+    "allTypes": "All Types",
+    "status": "Status",
+    "type": "Type",
+    "from": "From",
+    "to": "To",
+    "resetFilters": "Reset Filters",
+    "kpi": {
+      "totalPayouts": "Total Payouts",
+      "totalDisbursed": "Total Disbursed",
+      "totalPending": "Pending Approvals",
+      "totalRejected": "Rejected",
+      "amount": "{amount}"
+    },
+    "table": {
+      "date": "Date",
+      "member": "Member",
+      "type": "Type",
+      "amount": "Amount",
+      "status": "Status",
+      "requestedBy": "Requested By",
+      "workflow": "Approval Workflow",
+      "reason": "Reason",
+      "paidDate": "Paid Date",
+      "actions": "Actions"
+    },
+    "workflow": {
+      "notRequired": "Approval not required",
+      "vpApproved": "VP approved ({name})",
+      "vpRejected": "VP rejected: {reason}",
+      "presidentApproved": "President approved ({name})",
+      "presidentRejected": "President rejected: {reason}",
+      "paidOn": "Paid on {date}"
+    },
+    "empty": "No payouts match the selected filters.",
+    "emptyAll": "No fund payouts have been recorded yet."
   },
   "payoutStatus": {
     "requested": "Requested",
@@ -482,9 +527,10 @@
       "paidPayouts": "Payouts paid"
     },
     "trend": {
-      "title": "Income vs expenses (last 6 months)",
+      "title": "Income vs expenses & payouts (last 6 months)",
       "income": "Income",
-      "expense": "Expenses"
+      "expense": "Expenses",
+      "payout": "Payouts"
     },
     "recentPayouts": {
       "title": "Recent payouts",

@@ -3,6 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
 import {
   PayoutError,
+  countPayouts,
+  getPayoutsSummary,
+  listPayouts,
   markPaid,
   presidentDecision,
   requestPayout,
@@ -37,6 +40,7 @@ async function makeTestMember(suffix: string, originalJoinDate: Date) {
 }
 
 async function cleanup() {
+  await prisma.setting.deleteMany({ where: { key: "requirePayoutApproval" } });
   const testMembers = await prisma.member.findMany({
     where: { cnic: { startsWith: TEST_CNIC_PREFIX } },
     select: { id: true },
@@ -244,4 +248,158 @@ describe("payout approval setting", () => {
     expect(approved.status).toBe("vp_approved");
     void president;
   });
+});
+
+describe("payouts listing, filtering, and summary", () => {
+  it(
+    "filters by status and member",
+    async () => {
+      const memberA = await makeTestMember("list-a", utcDate(2020, 1, 1));
+      const memberB = await makeTestMember("list-b", utcDate(2020, 1, 1));
+
+      const pA = await requestPayout(
+        { memberId: memberA.id, payoutType: "funeral", amount: 15000, reason: "Special funeral aid" },
+        treasurer.id,
+        REF_NOW
+      );
+      const pB = await requestPayout(
+        { memberId: memberB.id, payoutType: "widow", amount: 25000, reason: "Monthly widow support" },
+        treasurer.id,
+        REF_NOW
+      );
+
+      const vpApp = await vpDecision(pA.id, "approve", undefined, vp.id);
+      await presidentDecision(vpApp.id, "approve", undefined, president.id);
+      await markPaid(pA.id, REF_NOW, treasurer.id);
+
+      // List by status "paid"
+      const paidList = await listPayouts({ status: "paid", memberId: memberA.id });
+      expect(paidList.some((p) => p.id === pA.id)).toBe(true);
+      expect(paidList.some((p) => p.id === pB.id)).toBe(false);
+
+      // List by memberId
+      const bList = await listPayouts({ memberId: memberB.id });
+      expect(bList.length).toBe(1);
+      expect(bList[0].id).toBe(pB.id);
+    },
+    15000
+  );
+
+  it("filters by payoutType", async () => {
+    const member = await makeTestMember("type-filter", utcDate(2020, 1, 1));
+    const pFuneral = await requestPayout(
+      { memberId: member.id, payoutType: "funeral", amount: 10000 },
+      treasurer.id,
+      REF_NOW
+    );
+    const pWidow = await requestPayout(
+      { memberId: member.id, payoutType: "widow", amount: 20000 },
+      treasurer.id,
+      REF_NOW
+    );
+
+    const funerals = await listPayouts({ memberId: member.id, payoutType: "funeral" });
+    expect(funerals.length).toBe(1);
+    expect(funerals[0].id).toBe(pFuneral.id);
+
+    const widows = await listPayouts({ memberId: member.id, payoutType: "widow" });
+    expect(widows.length).toBe(1);
+    expect(widows[0].id).toBe(pWidow.id);
+  });
+
+  it("searches across member name and reason", async () => {
+    const member = await makeTestMember("search-needle", utcDate(2020, 1, 1));
+    const payout = await requestPayout(
+      { memberId: member.id, payoutType: "other", amount: 5000, reason: "Emergency medical expense assistance" },
+      treasurer.id,
+      REF_NOW
+    );
+
+    // Search by member unique suffix
+    const searchByMember = await listPayouts({ search: "search-needle" });
+    expect(searchByMember.some((p) => p.id === payout.id)).toBe(true);
+
+    // Search by unique reason word
+    const searchByReason = await listPayouts({ search: "medical expense" });
+    expect(searchByReason.some((p) => p.id === payout.id)).toBe(true);
+
+    // Search for non-existent text
+    const searchNone = await listPayouts({ search: "non-existent-xyz-999" });
+    expect(searchNone.length).toBe(0);
+  });
+
+  it(
+    "paginates payouts with page and pageSize",
+    async () => {
+      const member = await makeTestMember("page-test", utcDate(2020, 1, 1));
+      for (let i = 1; i <= 5; i++) {
+        await requestPayout(
+          { memberId: member.id, payoutType: "other", amount: i * 1000 },
+          treasurer.id,
+          REF_NOW
+        );
+      }
+
+      const total = await countPayouts({ memberId: member.id });
+      expect(total).toBe(5);
+
+      const page1 = await listPayouts({ memberId: member.id, page: 1, pageSize: 2 });
+      expect(page1.length).toBe(2);
+
+      const page2 = await listPayouts({ memberId: member.id, page: 2, pageSize: 2 });
+      expect(page2.length).toBe(2);
+
+      const page3 = await listPayouts({ memberId: member.id, page: 3, pageSize: 2 });
+      expect(page3.length).toBe(1);
+
+      // Ensure page1 and page2 do not overlap
+      const page1Ids = page1.map((p) => p.id);
+      const page2Ids = page2.map((p) => p.id);
+      expect(page1Ids.some((id) => page2Ids.includes(id))).toBe(false);
+    },
+    15000
+  );
+
+  it(
+    "calculates accurate summary totals across statuses",
+    async () => {
+      const member = await makeTestMember("summary-test", utcDate(2020, 1, 1));
+
+      // 1 requested
+      await requestPayout(
+        { memberId: member.id, payoutType: "other", amount: 1000 },
+        treasurer.id,
+        REF_NOW
+      );
+
+      // 1 paid
+      const pPaid = await requestPayout(
+        { memberId: member.id, payoutType: "other", amount: 3000 },
+        treasurer.id,
+        REF_NOW
+      );
+      const vp1 = await vpDecision(pPaid.id, "approve", undefined, vp.id);
+      await presidentDecision(vp1.id, "approve", undefined, president.id);
+      await markPaid(pPaid.id, REF_NOW, treasurer.id);
+
+      // 1 rejected
+      const pRej = await requestPayout(
+        { memberId: member.id, payoutType: "other", amount: 2000 },
+        treasurer.id,
+        REF_NOW
+      );
+      await vpDecision(pRej.id, "reject", "Not justified", vp.id);
+
+      const summary = await getPayoutsSummary({ memberId: member.id });
+      expect(summary.totalCount).toBe(3);
+      expect(summary.totalAmount).toBe(6000);
+      expect(summary.paidCount).toBe(1);
+      expect(summary.paidAmount).toBe(3000);
+      expect(summary.pendingCount).toBe(1);
+      expect(summary.pendingAmount).toBe(1000);
+      expect(summary.rejectedCount).toBe(1);
+      expect(summary.rejectedAmount).toBe(2000);
+    },
+    15000
+  );
 });
