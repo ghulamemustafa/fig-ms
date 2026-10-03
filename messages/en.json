@@ -24,6 +24,13 @@
     "urdu": "اردو",
     "switchLabel": "Language"
   },
+  "theme": {
+    "toggle": "Theme",
+    "switchTheme": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "common": {
     "comingSoon": "Coming soon",
     "back": "Back",

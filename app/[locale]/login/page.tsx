@@ -2,13 +2,19 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { LocaleSwitcher } from "@/components/app-shell/locale-switcher";
+import { ThemeToggle } from "@/components/app-shell/theme-toggle";
 
 export default function LoginPage() {
   const t = useTranslations("auth");
   const tApp = useTranslations("app");
 
   return (
-    <div className="grid min-h-[100dvh] flex-1 lg:grid-cols-[1fr_1.1fr]">
+    <div className="relative grid min-h-[100dvh] flex-1 lg:grid-cols-[1fr_1.1fr]">
+      <div className="absolute top-4 end-4 z-20 flex items-center gap-2">
+        <LocaleSwitcher />
+        <ThemeToggle />
+      </div>
       {/* Brand panel: hidden on small screens, where the logo sits above the form instead. */}
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary p-10 text-primary-foreground lg:flex">
         <span className="text-sm font-medium tracking-tight opacity-90">{tApp("name")}</span>

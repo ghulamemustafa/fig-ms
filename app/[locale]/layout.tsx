@@ -7,6 +7,7 @@ import { Geist, Geist_Mono, Outfit, Noto_Nastaliq_Urdu } from "next/font/google"
 import { routing, localeDirections, type Locale } from "@/i18n/routing";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "@/components/providers/session-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -61,13 +62,21 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={direction}
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${nastaliq.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>
-          <SessionProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-          </SessionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <SessionProvider>
+              <TooltipProvider>{children}</TooltipProvider>
+            </SessionProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

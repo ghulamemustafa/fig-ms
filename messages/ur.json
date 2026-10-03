@@ -24,6 +24,13 @@
     "urdu": "اردو",
     "switchLabel": "زبان"
   },
+  "theme": {
+    "toggle": "تھیم",
+    "switchTheme": "تھیم تبدیل کریں",
+    "light": "روشن",
+    "dark": "تاریک",
+    "system": "سسٹم"
+  },
   "common": {
     "comingSoon": "جلد آ رہا ہے",
     "back": "واپس",

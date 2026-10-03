@@ -32,17 +32,25 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-          <XAxis dataKey="label" tickLine={false} fontSize={12} />
+          <XAxis dataKey="label" tickLine={false} stroke="var(--muted-foreground)" fontSize={12} />
           <YAxis
             width={48}
             tickLine={false}
             axisLine={false}
+            stroke="var(--muted-foreground)"
             fontSize={12}
             tickFormatter={(v: number) => format.number(v, { notation: "compact" })}
           />
           <Tooltip
             formatter={(value) => format.number(Number(value))}
-            contentStyle={{ fontSize: 12 }}
+            contentStyle={{
+              backgroundColor: "var(--card)",
+              borderColor: "var(--border)",
+              color: "var(--card-foreground)",
+              borderRadius: "var(--radius-md)",
+              fontSize: 12,
+            }}
+            itemStyle={{ color: "var(--card-foreground)" }}
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar dataKey="income" name={t("trend.income")} fill="var(--primary)" radius={[4, 4, 0, 0]} />

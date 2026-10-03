@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import type { Role } from "@/lib/rbac";
 import { GlobalSearch } from "@/components/app-shell/global-search";
 import { LocaleSwitcher } from "@/components/app-shell/locale-switcher";
+import { ThemeToggle } from "@/components/app-shell/theme-toggle";
 import { UserMenu } from "@/components/app-shell/user-menu";
 
 export function TopBar({ user }: { user: { name: string; role: Role } }) {
@@ -20,6 +21,8 @@ export function TopBar({ user }: { user: { name: string; role: Role } }) {
       <GlobalSearch />
 
       <LocaleSwitcher />
+
+      <ThemeToggle />
 
       <UserMenu name={user.name} role={user.role} />
     </header>
