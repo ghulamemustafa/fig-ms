@@ -102,6 +102,7 @@ async function main() {
     income: number;
     originalJoinDate: Date;
     currentJoinDate: Date;
+    detectedFirstPaymentMonth?: Date;
     status: string;
     removedDate?: Date;
     removedReason?: string;
@@ -280,7 +281,7 @@ async function main() {
     },
     // Adnan Kiani (2022/2023 Ser 14)
     {
-      serialNo: "FIC-0014",
+      serialNo: "HIS-0014",
       ser: 7006,
       name: "Adnan Kiani",
       fatherName: "Abdul Rauf",
@@ -299,7 +300,7 @@ async function main() {
     },
     // Nasir Ali (2022/2023 Ser 42)
     {
-      serialNo: "FIC-0042",
+      serialNo: "HIS-0042",
       ser: 7007,
       name: "Nasir Ali",
       fatherName: "Haji Zulfiqar Ali",
@@ -318,7 +319,7 @@ async function main() {
     },
     // Basharat Ali (2022/2023 Ser 46)
     {
-      serialNo: "FIC-0046",
+      serialNo: "HIS-0046",
       ser: 7008,
       name: "Basharat Ali",
       fatherName: "Muhammad Afsar",
@@ -353,9 +354,9 @@ async function main() {
     [normalize("Abdul Rehman (Pappu)")]: "HIS-0142",
     [normalize("Fazal Kareem")]: "HIS-0149",
     [normalize("Altaf Hussain Kiani")]: "HIS-0071",
-    [normalize("Adnan Kiani")]: "FIC-0014",
-    [normalize("Nasir Ali")]: "FIC-0042",
-    [normalize("Basharat Ali")]: "FIC-0046",
+    [normalize("Adnan Kiani")]: "HIS-0014",
+    [normalize("Nasir Ali")]: "HIS-0042",
+    [normalize("Basharat Ali")]: "HIS-0046",
   };
 
   /**
@@ -369,22 +370,20 @@ async function main() {
       if ((year === 2024 || year === 2025) && ser === 62) return "HIS-0062";
       if (year === 2025 && ser === 142) return "HIS-0142";
       if (year === 2025 && ser === 149) return "HIS-0149";
-      if (ser === 125) return "HIS-0125";
-      return `FIC-${String(ser).padStart(4, "0")}`;
+      const candFic = `FIC-${String(ser).padStart(4, "0")}`;
+      const candHis = `HIS-${String(ser).padStart(4, "0")}`;
+      if (membersBySerial.has(candFic)) return candFic;
+      if (membersBySerial.has(candHis)) return candHis;
+      return candFic;
     }
 
-    // 2022 and 2023
+    // 2022 and 2023: Exact match only, NO fuzzy substring searching
     const norm = normalize(rawName);
     if (historicalResolutions[norm]) {
       return historicalResolutions[norm];
     }
     if (nameToSerial.has(norm)) {
       return nameToSerial.get(norm);
-    }
-    for (const [nameKey, serial] of nameToSerial.entries()) {
-      if (nameKey.includes(norm) || norm.includes(nameKey)) {
-        return serial;
-      }
     }
     return undefined;
   }
@@ -415,54 +414,53 @@ async function main() {
       const m = membersBySerial.get(s)!;
 
       // Find first non-zero payment month in this sheet
-      let firstMonthIdx = sy.startM;
       for (let c = sy.startCol; c <= sy.startCol + (sy.endM - sy.startM); c++) {
         let val = row.getCell(c).value;
         if (val && typeof val === "object" && "result" in val) val = (val as any).result;
         if (Number(val) > 0) {
-          firstMonthIdx = sy.startM + (c - sy.startCol);
+          const mIdx = sy.startM + (c - sy.startCol);
+          const payDate = startOfMonthUTC(sy.year, mIdx);
+          if (!m.detectedFirstPaymentMonth || payDate.getTime() < m.detectedFirstPaymentMonth.getTime()) {
+            m.detectedFirstPaymentMonth = payDate;
+          }
           break;
         }
-      }
-
-      const detectedJoinDate = startOfMonthUTC(sy.year, firstMonthIdx);
-      if (detectedJoinDate.getTime() < m.originalJoinDate.getTime()) {
-        m.originalJoinDate = detectedJoinDate;
-        m.currentJoinDate = detectedJoinDate;
       }
     }
   }
 
-  // Successor join-date inheritance:
+  // Set join dates from detected first payment month
+  membersBySerial.forEach(m => {
+    const firstPay = m.detectedFirstPaymentMonth || new Date(Date.UTC(2026, 0, 1));
+    m.originalJoinDate = firstPay;
+    m.currentJoinDate = firstPay;
+  });
+
+  // Successor join-date inheritance (for welfare fund eligibility):
   // Ser 2 (Ahsan Asad Kiani) inherits 2022-09-01 from Qari Asad
   const ser2 = membersBySerial.get("FIC-0002");
   if (ser2) {
     ser2.originalJoinDate = new Date(Date.UTC(2022, 8, 1));
-    ser2.currentJoinDate = new Date(Date.UTC(2024, 3, 7));
   }
   // Ser 7 (Muhammad Fayyaz Kiani) inherits 2022-09-01 from Muhammad Riaz Kiani
   const ser7 = membersBySerial.get("FIC-0007");
   if (ser7) {
     ser7.originalJoinDate = new Date(Date.UTC(2022, 8, 1));
-    ser7.currentJoinDate = new Date(Date.UTC(2025, 8, 19));
   }
   // Ser 62 (Saghira Bi Bi) inherits 2022-09-01 from Muhammad Akhtar Kiani
   const ser62 = membersBySerial.get("FIC-0062");
   if (ser62) {
     ser62.originalJoinDate = new Date(Date.UTC(2022, 8, 1));
-    ser62.currentJoinDate = new Date(Date.UTC(2023, 10, 2));
   }
   // Ser 142 (Waheeda Bibi) inherits 2025-01-01 from Abdul Rehman
   const ser142 = membersBySerial.get("FIC-0142");
   if (ser142) {
     ser142.originalJoinDate = new Date(Date.UTC(2025, 0, 1));
-    ser142.currentJoinDate = new Date(Date.UTC(2026, 0, 1));
   }
   // Ser 149 (Khuram Shahzad) inherits 2025-03-01 from Fazal Kareem
   const ser149 = membersBySerial.get("FIC-0149");
   if (ser149) {
     ser149.originalJoinDate = new Date(Date.UTC(2025, 2, 1));
-    ser149.currentJoinDate = new Date(Date.UTC(2026, 0, 1));
   }
 
   const joinDist: Record<number, number> = {};
@@ -684,13 +682,17 @@ async function main() {
   for (const [memberSerial, monthMap] of memberMonthlyAmounts.entries()) {
     const member = membersBySerial.get(memberSerial)!;
 
-    // Filter all calendar months from member's originalJoinDate through Dec 2026
+    // Filter all calendar months from member's currentJoinDate through Dec 2026
     const memberMonths = allCalendarMonths.filter(
-      m => m.date.getTime() >= member.originalJoinDate.getTime()
+      m => m.date.getTime() >= member.currentJoinDate.getTime()
     );
 
     // First 3 active months require 1,000 PKR / month (wasDoubleFee: true)
-    const first3MonthKeys = new Set(memberMonths.slice(0, 3).map(m => m.key));
+    // Only genuinely new joins pay 2x for first 3 months; successors / rejoins do not.
+    const isNewJoin = member.originalJoinDate.getTime() === member.currentJoinDate.getTime();
+    const first3MonthKeys = isNewJoin
+      ? new Set(memberMonths.slice(0, 3).map(m => m.key))
+      : new Set<string>();
     const paidMonths = new Set<string>();
 
     for (let i = 0; i < memberMonths.length; i++) {
