@@ -1,7 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { prisma } from "@/lib/prisma";
-import { getOutstandingMonths, getUpcomingMonths, recordPayments, PaymentError } from "@/lib/payments";
+import {
+  getOutstandingMonths,
+  getUpcomingMonths,
+  recordPayments,
+  PaymentError,
+  countDefaulters,
+  listDefaulters,
+} from "@/lib/payments";
 
 /**
  * These create their own throwaway Member fixtures (unlike tests/rules.test.ts,
@@ -268,3 +275,29 @@ describe("advance payments", () => {
     ).resolves.toBeTruthy();
   });
 });
+
+describe("listDefaulters pagination", () => {
+  it("paginates defaulters list with correct slice and metadata", async () => {
+    const total = await countDefaulters(REF_NOW);
+    const result = await listDefaulters({ asOf: REF_NOW, page: 1, pageSize: 2 });
+
+    expect(result.total).toBe(total);
+    expect(result.pageSize).toBe(2);
+    expect(result.page).toBe(1);
+    expect(result.defaulters.length).toBeLessThanOrEqual(2);
+
+    if (total > 2) {
+      const page2 = await listDefaulters({ asOf: REF_NOW, page: 2, pageSize: 2 });
+      expect(page2.page).toBe(2);
+      expect(page2.defaulters[0].id).not.toBe(result.defaulters[0].id);
+    }
+  });
+
+  it("returns all defaulters when pageSize is not passed", async () => {
+    const total = await countDefaulters(REF_NOW);
+    const result = await listDefaulters({ asOf: REF_NOW });
+    expect(result.defaulters.length).toBe(total);
+    expect(result.total).toBe(total);
+  });
+});
+

@@ -164,6 +164,7 @@ export function DonationLedger({
                 <TableRow>
                   <TableHead>{t("table.date")}</TableHead>
                   <TableHead>{t("table.donorName")}</TableHead>
+                  <TableHead>{t("table.notes")}</TableHead>
                   <TableHead>{t("table.amount")}</TableHead>
                   {(canManage || canDelete) && <TableHead />}
                 </TableRow>
@@ -171,11 +172,14 @@ export function DonationLedger({
               <TableBody>
                 {entries.map((entry) => (
                   <TableRow key={entry.id}>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {format.dateTime(new Date(entry.date), { dateStyle: "medium" })}
                     </TableCell>
-                    <TableCell>{entry.donorName}</TableCell>
-                    <TableCell className="font-mono tabular-nums">{entry.amount}</TableCell>
+                    <TableCell className="font-medium">{entry.donorName}</TableCell>
+                    <TableCell className="max-w-xs truncate text-muted-foreground" title={entry.notes ?? undefined}>
+                      {entry.notes || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono tabular-nums whitespace-nowrap">{entry.amount}</TableCell>
                     {(canManage || canDelete) && (
                       <TableCell className="flex justify-end gap-1">
                         {canManage && (
@@ -211,6 +215,11 @@ export function DonationLedger({
                   </div>
                   <span className="font-mono tabular-nums">{entry.amount}</span>
                 </div>
+                {entry.notes && (
+                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {entry.notes}
+                  </p>
+                )}
                 {(canManage || canDelete) && (
                   <div className="mt-2 flex justify-end gap-1">
                     {canManage && (

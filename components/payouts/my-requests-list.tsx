@@ -81,6 +81,12 @@ export function MyRequestsList({ payouts }: { payouts: MyRequestPayout[] }) {
               <span className="tabular-nums">{p.amount}</span>
             </div>
 
+            {p.reason && (
+              <p className="text-sm text-muted-foreground">
+                {t("reason")}: {p.reason}
+              </p>
+            )}
+
             {p.status === "vp_rejected" && p.vpRejectReason && (
               <p className="text-sm text-destructive">
                 {t("rejectedByVp", { reason: p.vpRejectReason })}

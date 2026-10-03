@@ -254,12 +254,13 @@ function MemberDetailContent({
           {member.payouts.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("noPayouts")}</p>
           ) : (
-            <div className="overflow-hidden rounded-2xl border bg-card shadow-(--shadow-soft)">
+            <div className="overflow-x-auto rounded-2xl border bg-card shadow-(--shadow-soft)">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>{tQueue("type")}</TableHead>
                     <TableHead>{tQueue("amount")}</TableHead>
+                    <TableHead>{tQueue("reason")}</TableHead>
                     <TableHead>{t("status")}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -268,6 +269,9 @@ function MemberDetailContent({
                     <TableRow key={p.id}>
                       <TableCell>{tType(p.payoutType as "funeral" | "widow" | "other")}</TableCell>
                       <TableCell className="tabular-nums">{String(p.amount)}</TableCell>
+                      <TableCell className="max-w-xs truncate text-muted-foreground" title={p.reason ?? undefined}>
+                        {p.reason || "—"}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auditUpdate, logAuditMany, type AuditEntry } from "@/lib/audit";
 import { consecutiveUnpaidMonths, expectedFee } from "@/lib/rules";
 import { getSettingValueAsOf } from "@/lib/settings";
+import { pageCountOf, resolvePage } from "@/lib/pagination";
 
 function startOfMonthUTC(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -174,6 +175,35 @@ export async function getDefaulters(asOf: Date = new Date()) {
     }))
     .filter((member) => member.unpaidMonths > 0)
     .sort((a, b) => b.unpaidMonths - a.unpaidMonths);
+}
+
+export type DefaultersFilter = {
+  asOf?: Date;
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+};
+
+export async function countDefaulters(asOf: Date = new Date()): Promise<number> {
+  const all = await getDefaulters(asOf);
+  return all.length;
+}
+
+export async function listDefaulters(params: DefaultersFilter = {}) {
+  const all = await getDefaulters(params.asOf);
+  const total = all.length;
+  const pageSize = params.pageSize ?? params.limit;
+
+  if (!pageSize) {
+    return { defaulters: all, total, page: 1, pageSize: total };
+  }
+
+  const pageCount = pageCountOf(total, pageSize);
+  const page = resolvePage(params.page ? String(params.page) : undefined, pageCount);
+  const skip = (page - 1) * pageSize;
+  const defaulters = all.slice(skip, skip + pageSize);
+
+  return { defaulters, total, page, pageSize };
 }
 
 async function nextReceiptNo(

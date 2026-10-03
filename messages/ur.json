@@ -215,6 +215,7 @@
     "currentJoinDate": "موجودہ شمولیت کی تاریخ",
     "removedDate": "اخراج/وفات کی تاریخ",
     "removedReason": "وجہ",
+    "reason": "وجہ",
     "predecessorOf": "{name} کا جانشین",
     "succeededByLabel": "{name} کی جانب سے جانشینی",
     "editButton": "ترمیم",
@@ -378,6 +379,7 @@
   "myRequests": {
     "title": "میری درخواستیں",
     "empty": "آپ نے ابھی تک کوئی ادائیگی کی درخواست نہیں دی۔",
+    "reason": "وجہ",
     "rejectedByVp": "نائب صدر نے مسترد کیا: {reason}",
     "rejectedByPresident": "صدر نے مسترد کیا: {reason}"
   },
@@ -411,6 +413,7 @@
     "table": {
       "date": "تاریخ",
       "source": "ذریعہ",
+      "description": "تفصیل",
       "amount": "رقم"
     }
   },
@@ -422,6 +425,7 @@
     "table": {
       "date": "تاریخ",
       "donorName": "عطیہ دہندہ",
+      "notes": "نوٹس",
       "amount": "رقم"
     }
   },
@@ -435,6 +439,7 @@
     "table": {
       "date": "تاریخ",
       "category": "قسم",
+      "description": "تفصیل",
       "amount": "رقم"
     }
   },

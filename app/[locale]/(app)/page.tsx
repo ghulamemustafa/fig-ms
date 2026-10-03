@@ -56,14 +56,15 @@ function DashboardContent({
   const canCollect = hasRole(role, ["treasurer", "data_entry"]);
   const isVp = hasRole(role, ["vp", "admin"]);
   const isPresident = hasRole(role, ["president", "admin"]);
-  const approvalsFirst = role === "vp" || role === "president";
+  const showPendingApprovals = summary.requirePayoutApproval && (isVp || isPresident);
+  const approvalsFirst = showPendingApprovals && (role === "vp" || role === "president");
   const { collection, members, defaulters, fund } = summary;
   const progress =
     collection.expected > 0
       ? Math.min(100, Math.round((collection.collected / collection.expected) * 100))
       : 0;
 
-  const pendingCard = (isVp || isPresident) && (
+  const pendingCard = showPendingApprovals && (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">

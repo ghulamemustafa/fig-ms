@@ -230,3 +230,53 @@ describe("pagination across ledgers", () => {
   });
 });
 
+describe("ledger descriptions and notes", () => {
+  it("persists and retrieves income description", async () => {
+    const inc = await createIncome(
+      {
+        date: utcDate(2026, 6, 10),
+        source: `${MARKER}-scrap-sale`,
+        amount: 450,
+        description: "Sale of old office chairs",
+      },
+      actor
+    );
+
+    const rows = await listIncome({ from: utcDate(2026, 6, 10), to: utcDate(2026, 6, 10) });
+    const found = rows.find((r) => r.id === inc.id);
+    expect(found?.description).toBe("Sale of old office chairs");
+  });
+
+  it("persists and retrieves expense description", async () => {
+    const exp = await createExpense(
+      {
+        date: utcDate(2026, 6, 11),
+        category: `${MARKER}-Stationery`,
+        amount: 150,
+        description: "Receipt books printing",
+      },
+      actor
+    );
+
+    const rows = await listExpenses({ from: utcDate(2026, 6, 11), to: utcDate(2026, 6, 11) });
+    const found = rows.find((r) => r.id === exp.id);
+    expect(found?.description).toBe("Receipt books printing");
+  });
+
+  it("persists and retrieves donation notes", async () => {
+    const don = await createDonation(
+      {
+        date: utcDate(2026, 6, 12),
+        donorName: `${MARKER}-Haji Sahab`,
+        amount: 5000,
+        notes: "For Ramadan iftar fund",
+      },
+      actor
+    );
+
+    const rows = await listDonations({ from: utcDate(2026, 6, 12), to: utcDate(2026, 6, 12) });
+    const found = rows.find((r) => r.id === don.id);
+    expect(found?.notes).toBe("For Ramadan iftar fund");
+  });
+});
+

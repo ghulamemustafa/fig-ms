@@ -215,6 +215,7 @@
     "currentJoinDate": "Current join date",
     "removedDate": "Removed / death date",
     "removedReason": "Reason",
+    "reason": "Reason",
     "predecessorOf": "Successor of {name}",
     "succeededByLabel": "Succeeded by {name}",
     "editButton": "Edit",
@@ -378,6 +379,7 @@
   "myRequests": {
     "title": "My Requests",
     "empty": "You haven't requested any payouts yet.",
+    "reason": "Reason",
     "rejectedByVp": "Rejected by VP: {reason}",
     "rejectedByPresident": "Rejected by President: {reason}"
   },
@@ -411,6 +413,7 @@
     "table": {
       "date": "Date",
       "source": "Source",
+      "description": "Description",
       "amount": "Amount"
     }
   },
@@ -422,6 +425,7 @@
     "table": {
       "date": "Date",
       "donorName": "Donor",
+      "notes": "Notes",
       "amount": "Amount"
     }
   },
@@ -435,6 +439,7 @@
     "table": {
       "date": "Date",
       "category": "Category",
+      "description": "Description",
       "amount": "Amount"
     }
   },

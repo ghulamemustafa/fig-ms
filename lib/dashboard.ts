@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getDefaulters } from "@/lib/payments";
 import { feeFromSettings, getFeeSettingsAsOf } from "@/lib/rules";
 import { getDonationTotal, getExpenseTotal, getIncomeTotal } from "@/lib/ledgers";
+import { isPayoutApprovalRequired } from "@/lib/settings";
 
 const TREND_MONTHS = 6;
 
@@ -42,6 +43,7 @@ export type DashboardSummary = {
     status: string;
   }[];
   pendingApprovals: { vp: number; president: number };
+  requirePayoutApproval: boolean;
 };
 
 export async function getDashboardSummary(asOf: Date = new Date()): Promise<DashboardSummary> {
@@ -68,6 +70,7 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
     recentPayouts,
     pendingVp,
     pendingPresident,
+    requirePayoutApproval,
   ] = await Promise.all([
     prisma.member.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.member.count({
@@ -114,6 +117,7 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
     }),
     prisma.fundPayout.count({ where: { status: "requested" } }),
     prisma.fundPayout.count({ where: { status: "vp_approved" } }),
+    isPayoutApprovalRequired(asOf),
   ]);
 
   const statusCount = (status: string) =>
@@ -173,5 +177,6 @@ export async function getDashboardSummary(asOf: Date = new Date()): Promise<Dash
       status: p.status,
     })),
     pendingApprovals: { vp: pendingVp, president: pendingPresident },
+    requirePayoutApproval,
   };
 }

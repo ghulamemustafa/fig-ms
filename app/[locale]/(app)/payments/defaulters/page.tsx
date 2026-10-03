@@ -2,10 +2,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { CheckCircle2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { getDefaulters } from "@/lib/payments";
+import { listDefaulters } from "@/lib/payments";
+import { resolvePageSize } from "@/lib/pagination";
 import { BackLink } from "@/components/app-shell/back-link";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
+import { DefaultersToolbar } from "@/components/payments/defaulters-toolbar";
 import {
   Table,
   TableBody,
@@ -15,28 +18,58 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export default async function DefaultersPage() {
-  const defaulters = await getDefaulters();
+export default async function DefaultersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    page?: string;
+    pageSize?: string;
+  }>;
+}) {
+  const sp = await searchParams;
+  const pageSize = resolvePageSize(sp.pageSize);
+  const requestedPage = sp.page ? Number(sp.page) : 1;
 
-  return <DefaultersContent defaulters={defaulters} />;
+  const { defaulters, total, page } = await listDefaulters({
+    page: requestedPage,
+    pageSize,
+  });
+
+  return (
+    <DefaultersContent
+      defaulters={defaulters}
+      page={page}
+      pageSize={pageSize}
+      total={total}
+    />
+  );
 }
 
 function DefaultersContent({
   defaulters,
+  page,
+  pageSize,
+  total,
 }: {
-  defaulters: Awaited<ReturnType<typeof getDefaulters>>;
+  defaulters: Awaited<ReturnType<typeof listDefaulters>>["defaulters"];
+  page: number;
+  pageSize: number;
+  total: number;
 }) {
   const t = useTranslations("defaulters");
 
   return (
     <div className="space-y-4">
       <BackLink href="/payments" />
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("description")}</p>
+        </div>
+        {total > 0 && <DefaultersToolbar />}
       </div>
 
-      {defaulters.length === 0 ? (
+      {total === 0 ? (
         <EmptyState icon={CheckCircle2}>{t("empty")}</EmptyState>
       ) : (
         <>
@@ -97,6 +130,8 @@ function DefaultersContent({
               </Link>
             ))}
           </div>
+
+          <Pagination page={page} pageSize={pageSize} total={total} />
         </>
       )}
     </div>

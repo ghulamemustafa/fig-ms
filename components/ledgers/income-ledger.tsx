@@ -163,6 +163,7 @@ export function IncomeLedger({
                 <TableRow>
                   <TableHead>{t("table.date")}</TableHead>
                   <TableHead>{t("table.source")}</TableHead>
+                  <TableHead>{t("table.description")}</TableHead>
                   <TableHead>{t("table.amount")}</TableHead>
                   {(canManage || canDelete) && <TableHead />}
                 </TableRow>
@@ -170,11 +171,14 @@ export function IncomeLedger({
               <TableBody>
                 {entries.map((entry) => (
                   <TableRow key={entry.id}>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {format.dateTime(new Date(entry.date), { dateStyle: "medium" })}
                     </TableCell>
-                    <TableCell>{entry.source}</TableCell>
-                    <TableCell className="font-mono tabular-nums">{entry.amount}</TableCell>
+                    <TableCell className="font-medium">{entry.source}</TableCell>
+                    <TableCell className="max-w-xs truncate text-muted-foreground" title={entry.description ?? undefined}>
+                      {entry.description || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono tabular-nums whitespace-nowrap">{entry.amount}</TableCell>
                     {(canManage || canDelete) && (
                       <TableCell className="flex justify-end gap-1">
                         {canManage && (
@@ -210,6 +214,11 @@ export function IncomeLedger({
                   </div>
                   <span className="font-mono tabular-nums">{entry.amount}</span>
                 </div>
+                {entry.description && (
+                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {entry.description}
+                  </p>
+                )}
                 {(canManage || canDelete) && (
                   <div className="mt-2 flex justify-end gap-1">
                     {canManage && (
